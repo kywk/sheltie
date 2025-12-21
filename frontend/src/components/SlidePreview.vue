@@ -103,10 +103,9 @@
                 v-for="(phase, i) in slide.project.phases"
                 :key="phase.name"
                 class="gantt-phase"
-                :class="getPhaseClass(phase.name)"
                 :style="getPhaseStyle(slide.project.phases, i)"
               >
-                <div class="phase-arrow">
+                <div class="phase-arrow" :style="getPhaseArrowStyle(phase.name, i, slide.project.phases.length)">
                   <span class="phase-name">{{ phase.name }}</span>
                   <span class="phase-dates">{{ formatPhaseDate(phase) }}</span>
                 </div>
@@ -203,28 +202,71 @@ const getStatusIcon = (status?: string) => {
   return '🟢'
 }
 
-const getPhaseClass = (phaseName: string) => {
-  const classes: Record<string, string> = {
-    '開發': 'phase-dev',
-    'SIT': 'phase-sit',
-    'QAS': 'phase-qas',
-    'REG': 'phase-reg',
-    'PROD': 'phase-prod'
-  }
-  return classes[phaseName] || ''
+// 7 phase colors that cycle (8th = 1st)
+const PHASE_COLORS = [
+  { from: '#60a5fa', to: '#3b82f6' }, // 藍
+  { from: '#34d399', to: '#10b981' }, // 綠
+  { from: '#fbbf24', to: '#f59e0b' }, // 黃
+  { from: '#f472b6', to: '#ec4899' }, // 粉紅
+  { from: '#a78bfa', to: '#8b5cf6' }, // 紫
+  { from: '#fb923c', to: '#ea580c' }, // 橙
+  { from: '#22d3ee', to: '#06b6d4' }  // 青
+]
+
+// Get phase color by index (cycles through 7 colors)
+const getPhaseColors = (_phaseName: string, index: number, _total: number) => {
+  return PHASE_COLORS[index % PHASE_COLORS.length]
 }
 
-// Calculate phase position and width
+// Calculate phase position and width based on actual date proportions
 const getPhaseStyle = (phases: Phase[], index: number) => {
   const totalPhases = phases.length
-  const width = 100 / totalPhases
-  const left = index * width
-  const overlap = index > 0 ? 8 : 0 // arrow overlap
+  if (totalPhases === 0) return {}
+  
+  // Calculate total duration (sum of all phase durations, no gaps)
+  let totalDays = 0
+  const phaseDurations: number[] = []
+  
+  for (const phase of phases) {
+    const start = new Date(phase.startDate).getTime()
+    const end = new Date(phase.endDate || phase.startDate).getTime()
+    const days = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1)
+    phaseDurations.push(days)
+    totalDays += days
+  }
+  
+  if (totalDays <= 0) {
+    const width = 100 / totalPhases
+    const left = index * width
+    const overlap = index > 0 ? 8 : 0
+    return {
+      left: `calc(${left}% - ${overlap}px)`,
+      width: `calc(${width}% + ${overlap}px)`,
+      zIndex: totalPhases - index
+    }
+  }
+  
+  // Calculate left position (sum of previous phase widths)
+  let leftPercent = 0
+  for (let i = 0; i < index; i++) {
+    leftPercent += (phaseDurations[i] / totalDays) * 100
+  }
+  
+  const widthPercent = (phaseDurations[index] / totalDays) * 100
+  const overlap = index > 0 ? 8 : 0
   
   return {
-    left: `calc(${left}% - ${overlap}px)`,
-    width: `calc(${width}% + ${overlap}px)`,
-    zIndex: totalPhases - index // Earlier phases on top
+    left: `calc(${leftPercent}% - ${overlap}px)`,
+    width: `calc(${Math.max(widthPercent, 5)}% + ${overlap}px)`,
+    zIndex: totalPhases - index
+  }
+}
+
+// Get phase arrow style with dynamic gradient colors
+const getPhaseArrowStyle = (phaseName: string, index: number, total: number) => {
+  const colors = getPhaseColors(phaseName, index, total)
+  return {
+    background: `linear-gradient(135deg, ${colors.from} 0%, ${colors.to} 100%)`
   }
 }
 
@@ -468,26 +510,7 @@ const getTodayPinStyle = (phases: Phase[]) => {
   font-weight: 400;
 }
 
-/* Phase Colors - gradient from top-left to bottom-right */
-.phase-dev .phase-arrow {
-  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
-}
-
-.phase-sit .phase-arrow {
-  background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
-}
-
-.phase-qas .phase-arrow {
-  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-}
-
-.phase-reg .phase-arrow {
-  background: linear-gradient(135deg, #f472b6 0%, #ec4899 100%);
-}
-
-.phase-prod .phase-arrow {
-  background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
-}
+/* Phase colors are now applied via inline styles for dynamic phase support */
 
 /* Today Pin */
 .today-pin {

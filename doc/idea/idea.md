@@ -96,46 +96,51 @@ Sheltie 是個 markdown 線上協同編輯的工具, 依循固定格式編寫專
 - 以 docker 為主, 前後端打包在同一個 docker image
 - 部署環境請幫我設計 
 
----
+## 釐清需求
 
-📋 Sheltie 專案需求分析
-我已經閱讀了 
-idea.md
- 的需求，以及參考了 border-collie 專案的 UI 設計。以下是需要進一步釐清的項目：
+> 📋 Sheltie 專案需求分析
+> 我已經閱讀了  idea.md 的需求，以及參考了 border-collie 專案的 UI 設計。以下是需要進一步釐清的項目：
+> 🔍 需進一步釐清的問題
 
-🔍 需進一步釐清的問題
 1. 協同編輯技術選型
 您偏好使用哪種協同編輯方案？
-OT (Operational Transformation) - 如 ShareDB
-CRDT - 如 Yjs 或 Automerge
-WebSocket 簡易同步 - 適合小型團隊
+- OT (Operational Transformation) - 如 ShareDB
+- CRDT - 如 Yjs 或 Automerge
+- WebSocket 簡易同步 - 適合小型團隊
 這會影響後端架構和複雜度
+
 2. 後端語言確認
 idea.md 中提到「以 goland 為主」，確認是指 Go (Golang) 語言？
+
 3. 認證與權限
-是否需要使用者登入/認證功能？
-專案文件是否需要權限控制（如：只有特定人可編輯）？
-還是開放式協作，只要有連結就能編輯？
+- 是否需要使用者登入/認證功能？
+- 專案文件是否需要權限控制（如：只有特定人可編輯）？
+- 或是開放式協作，只要有連結就能編輯？
+
 4. 投影片樣式設計
-匯出 PPTX 時的模板/配色是否需要特定企業風格？
-「商務、洗煉」風格是否有參考範例？
-投影片是否需要公司 Logo 或固定版頭？
+- 匯出 PPTX 時的模板/配色是否需要特定企業風格？
+- 「商務、洗煉」風格是否有參考範例？
+- 投影片是否需要公司 Logo 或固定版頭？
+
 5. WYSIWYG 編輯器選型
-您偏好哪種 Markdown WYSIWYG 編輯器？
-Milkdown - 現代化、可擴展
-Tiptap - Vue 生態圈常用
-Editor.js - Block-based
-其他偏好？
+- 您偏好哪種 Markdown WYSIWYG 編輯器？
+  - Milkdown - 現代化、可擴展
+  - Tiptap - Vue 生態圈常用
+  - Editor.js - Block-based
+  - 其他偏好？
+
 6. 專案資料範圍
-每個「工作區」會包含多少專案（約略數量）？
-會辦紀錄通常會累積多長時間（用於評估資料量）？
+- 每個「工作區」會包含多少專案（約略數量）？
+- 會辦紀錄通常會累積多長時間（用於評估資料量）？
+
 7. 部署環境
-目標部署環境是什麼？（內網伺服器、雲端、Docker Compose、K8s 等）
-是否需要支援 HTTPS/SSL？
-預期同時線上協作的人數上限？
+- 目標部署環境是什麼？（內網伺服器、雲端、Docker Compose、K8s 等）
+- 是否需要支援 HTTPS/SSL？
+- 預期同時線上協作的人數上限？
+
 8. 分享機制
-是否需要類似 border-collie 的 URL 連結分享功能（壓縮資料於 URL 中）？
-或是採用伺服器儲存 + 分享連結 ID 的方式？
+- 是否需要類似 border-collie 的 URL 連結分享功能（壓縮資料於 URL 中）？
+- 或是採用伺服器儲存 + 分享連結 ID 的方式？
 
 1. WebSocket 簡易同步
 2. Go (Golang) 語言

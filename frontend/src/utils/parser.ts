@@ -24,8 +24,8 @@ export interface Phase {
     endDate: string
 }
 
-// Fixed phase order
-export const PHASE_ORDER = ['開發', 'SIT', 'QAS', 'REG', 'PROD'] as const
+// Predefined phases with known colors (for backwards compatibility)
+export const KNOWN_PHASES = ['開發', 'SIT', 'QAS', 'REG', 'PROD'] as const
 
 // Meeting entry - just date and raw content lines
 export interface MeetingEntry {
@@ -150,21 +150,20 @@ function parseBasicInfo(
         project.departments.主辦 = trimmed.replace('- 主辦:', '').trim()
     } else if (trimmed.startsWith('- 協辦/協同:') || trimmed.startsWith('- 協辦:')) {
         project.departments.協辦 = trimmed.replace(/- 協辦.*:/, '').trim()
-    } else if (inTimeline || line.match(/^\s+-\s*(開發|SIT|QAS|REG|PROD):/)) {
-        // Parse phase dates: - 開發: 2025-12-20 ~ 2025-12-25
-        // Also handle indented format:   - 開發: 2025-12-20 ~ 2025-12-25
-        for (const phaseName of PHASE_ORDER) {
-            if (trimmed.startsWith(`- ${phaseName}:`)) {
-                const dates = trimmed.replace(`- ${phaseName}:`, '').trim()
-                const [start, end] = dates.split('~').map(s => s.trim())
-                project.phases.push({
-                    name: phaseName,
-                    startDate: start || '',
-                    endDate: end || start || '' // PROD might only have one date
-                })
-                setInTimeline(true) // Stay in timeline mode
-                break
-            }
+    } else if (inTimeline) {
+        // Parse any phase format: - 階段名: YYYY-MM-DD ~ YYYY-MM-DD
+        // Supports both single date and date range
+        const phaseMatch = trimmed.match(/^-\s*([^:]+):\s*(\d{4}-\d{2}-\d{2})(?:\s*~\s*(\d{4}-\d{2}-\d{2}))?$/)
+        if (phaseMatch) {
+            const phaseName = phaseMatch[1].trim()
+            const startDate = phaseMatch[2]
+            const endDate = phaseMatch[3] || startDate
+
+            project.phases.push({
+                name: phaseName,
+                startDate,
+                endDate
+            })
         }
     }
 }
