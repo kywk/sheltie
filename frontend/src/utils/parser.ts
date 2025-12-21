@@ -24,8 +24,6 @@ export interface Phase {
     endDate: string
 }
 
-// Predefined phases with known colors (for backwards compatibility)
-export const KNOWN_PHASES = ['開發', 'SIT', 'QAS', 'REG', 'PROD'] as const
 
 // Meeting entry - just date and raw content lines
 export interface MeetingEntry {
@@ -264,13 +262,4 @@ export function generateSlides(projects: Project[]): Slide[] {
 export function getTodayString(): string {
     const now = new Date()
     return now.toISOString().split('T')[0]
-}
-
-// Utility: Calculate position as percentage between two dates
-export function getDatePosition(date: string, startDate: string, endDate: string): number {
-    const d = new Date(date).getTime()
-    const s = new Date(startDate).getTime()
-    const e = new Date(endDate).getTime()
-    if (e === s) return 0
-    return Math.max(0, Math.min(100, ((d - s) / (e - s)) * 100))
 }

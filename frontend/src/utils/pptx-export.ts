@@ -1,4 +1,5 @@
 import { parseMarkdown, sortProjects } from './parser'
+import { getStatusIcon } from './status'
 
 // Lazy load pptxgenjs to avoid large initial bundle
 export async function exportToPPTX(content: string, title: string = 'Sheltie Export') {
@@ -58,7 +59,7 @@ export async function exportToPPTX(content: string, title: string = 'Sheltie Exp
 
         for (const project of slideProjects) {
             tableData.push([
-                { text: getStatusEmoji(project.status), options: { align: 'center' } },
+                { text: getStatusIcon(project.status), options: { align: 'center' } },
                 { text: project.name },
                 { text: project.currentState },
                 { text: `${project.progress}%`, options: { align: 'center' } },
@@ -82,7 +83,7 @@ export async function exportToPPTX(content: string, title: string = 'Sheltie Exp
         const slide = pptx.addSlide()
 
         // Header with status
-        slide.addText(`${getStatusEmoji(project.status)} ${project.name}`, {
+        slide.addText(`${getStatusIcon(project.status)} ${project.name}`, {
             x: 0.5,
             y: 0.3,
             w: '90%',
@@ -209,8 +210,3 @@ export async function exportToPPTX(content: string, title: string = 'Sheltie Exp
     pptx.writeFile({ fileName: `${title}.pptx` })
 }
 
-function getStatusEmoji(status: string): string {
-    if (status === '紅' || status.includes('紅')) return '🔴'
-    if (status === '黃' || status.includes('黃')) return '🟡'
-    return '🟢'
-}

@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -25,6 +26,7 @@ func main() {
 
 	// Create WebSocket hub
 	hub := websocket.NewHub()
+	hub.AutoSaveInterval = time.Duration(cfg.AutoSaveInterval) * time.Second
 	handlers.SetHub(hub)
 	go hub.Run()
 

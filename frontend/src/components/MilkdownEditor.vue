@@ -11,7 +11,7 @@
 import { MilkdownProvider } from '@milkdown/vue'
 import MilkdownEditorInner from './MilkdownEditorInner.vue'
 
-const props = defineProps<{
+defineProps<{
   modelValue: string
 }>()
 

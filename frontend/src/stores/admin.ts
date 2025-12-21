@@ -26,13 +26,16 @@ export const useAdminStore = defineStore('admin', () => {
     }
 
     const logout = () => {
+        const currentToken = token.value
         token.value = null
         isAuthenticated.value = false
         localStorage.removeItem('sheltie-admin-token')
-        fetch('/api/admin/logout', {
-            method: 'POST',
-            headers: { 'Authorization': token.value || '' }
-        })
+        if (currentToken) {
+            fetch('/api/admin/logout', {
+                method: 'POST',
+                headers: { 'Authorization': currentToken }
+            })
+        }
     }
 
     const getAuthHeaders = () => ({

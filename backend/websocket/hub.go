@@ -68,28 +68,30 @@ type Hub struct {
 	mu sync.RWMutex
 
 	// Last content per workspace for auto-save
-	lastContent     map[string]string
-	lastContentTime map[string]time.Time
-	contentMu       sync.RWMutex
+	lastContent      map[string]string
+	lastContentTime  map[string]time.Time
+	contentMu        sync.RWMutex
+	AutoSaveInterval time.Duration
 }
 
 // NewHub creates a new Hub instance
 func NewHub() *Hub {
 	hub := &Hub{
-		Rooms:           make(map[string]map[*Client]bool),
-		Broadcast:       make(chan *Message, 256),
-		Register:        make(chan *Client),
-		Unregister:      make(chan *Client),
-		lastContent:     make(map[string]string),
-		lastContentTime: make(map[string]time.Time),
+		Rooms:            make(map[string]map[*Client]bool),
+		Broadcast:        make(chan *Message, 256),
+		Register:         make(chan *Client),
+		Unregister:       make(chan *Client),
+		lastContent:      make(map[string]string),
+		lastContentTime:  make(map[string]time.Time),
+		AutoSaveInterval: 60 * time.Second, // Default 60 seconds
 	}
 	return hub
 }
 
 // Run starts the hub's main loop
 func (h *Hub) Run() {
-	// Auto-save ticker (every 60 seconds)
-	autoSaveTicker := time.NewTicker(60 * time.Second)
+	// Auto-save ticker (uses configurable interval)
+	autoSaveTicker := time.NewTicker(h.AutoSaveInterval)
 	defer autoSaveTicker.Stop()
 
 	for {
@@ -222,11 +224,16 @@ func (h *Hub) broadcastToRoom(workspaceID string, message *Message, exclude *Cli
 		return
 	}
 
+	// Copy client list while holding lock to avoid race condition
 	h.mu.RLock()
 	room := h.Rooms[workspaceID]
+	clients := make([]*Client, 0, len(room))
+	for client := range room {
+		clients = append(clients, client)
+	}
 	h.mu.RUnlock()
 
-	for client := range room {
+	for _, client := range clients {
 		if client == exclude {
 			continue
 		}
@@ -234,8 +241,10 @@ func (h *Hub) broadcastToRoom(workspaceID string, message *Message, exclude *Cli
 		case client.Send <- data:
 		default:
 			h.mu.Lock()
-			delete(h.Rooms[workspaceID], client)
-			close(client.Send)
+			if _, ok := h.Rooms[workspaceID][client]; ok {
+				delete(h.Rooms[workspaceID], client)
+				close(client.Send)
+			}
 			h.mu.Unlock()
 		}
 	}

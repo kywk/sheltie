@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"net/http"
 	"time"
 
@@ -42,8 +44,12 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// Generate a simple token (in production, use JWT)
-	token := generateToken()
+	// Generate a secure random token
+	token, err := generateSecureToken(32)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		return
+	}
 	adminTokens[token] = time.Now().Add(tokenExpiry)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -83,13 +89,12 @@ func AdminAuthMiddleware() gin.HandlerFunc {
 	}
 }
 
-// generateToken creates a simple random token
-func generateToken() string {
-	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	b := make([]byte, 32)
-	for i := range b {
-		b[i] = charset[time.Now().UnixNano()%int64(len(charset))]
-		time.Sleep(time.Nanosecond)
+// generateSecureToken creates a cryptographically secure random token
+func generateSecureToken(length int) (string, error) {
+	bytes := make([]byte, length)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
 	}
-	return string(b)
+	return hex.EncodeToString(bytes), nil
 }
+
