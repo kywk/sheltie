@@ -86,9 +86,11 @@
                 </div>
               </div>
             </div>
-            <div v-else class="wysiwyg-placeholder">
-              WYSIWYG 編輯器 (Milkdown) - 開發中
-            </div>
+            <MilkdownEditor
+              v-else
+              v-model="content"
+              @update:modelValue="onContentChange"
+            />
           </div>
         </div>
       </template>
@@ -147,6 +149,7 @@ import { useRoute } from 'vue-router'
 import { useWorkspaceStore } from '@/stores/workspace'
 import SplitPane from './SplitPane.vue'
 import SlidePreview from './SlidePreview.vue'
+import MilkdownEditor from './MilkdownEditor.vue'
 import { exportToPPTX } from '@/utils/pptx-export'
 
 const route = useRoute()
@@ -512,14 +515,6 @@ const exportPPTX = () => {
   border-radius: 3px;
   white-space: nowrap;
   font-weight: 500;
-}
-
-.wysiwyg-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: var(--color-text-muted);
 }
 
 .slide-preview-container {
