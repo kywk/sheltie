@@ -14,7 +14,7 @@ export interface Project {
     }
     category: string
     meetings: MeetingEntry[]
-    notes: string[]
+    notes: NoteLine[]
     lineNumber: number  // Line number where this project starts (0-indexed)
 }
 
@@ -34,6 +34,13 @@ export interface MeetingEntry {
 
 // Each line in meeting content
 export interface MeetingLine {
+    text: string
+    isTracking: boolean  // _待追蹤_ 開頭
+    isPlanned: boolean   // _預計_ 開頭
+}
+
+// Each line in other notes
+export interface NoteLine {
     text: string
     isTracking: boolean  // _待追蹤_ 開頭
     isPlanned: boolean   // _預計_ 開頭
@@ -120,7 +127,13 @@ function parseProjectSection(section: string, lineOffset: number = 0): Project |
             parseMeeting(line, project, currentMeeting, (m) => { currentMeeting = m })
         } else if (currentSection === '其他補充') {
             if (line.match(/^[\*\-]\s+/) && line.length > 2) {
-                project.notes.push(line.replace(/^[\*\-]\s+/, '').trim())
+                const content = line.replace(/^[\*\-]\s+/, '').trim()
+                const noteLine: NoteLine = {
+                    text: content,
+                    isTracking: content.startsWith('_待追蹤_'),
+                    isPlanned: content.startsWith('_預計_')
+                }
+                project.notes.push(noteLine)
             }
         }
     }

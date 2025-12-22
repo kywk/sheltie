@@ -147,8 +147,12 @@
           <div v-if="slide.project?.notes.length" class="other-notes-column">
             <div class="section-label">其他補充事項</div>
             <ul>
-              <li v-for="(note, i) in slide.project?.notes.slice(0, 5)" :key="i">
-                {{ note }}
+              <li 
+                v-for="(note, i) in slide.project?.notes.slice(0, 5)" 
+                :key="i"
+                :class="{ tracking: note.isTracking, planned: note.isPlanned }"
+              >
+                {{ note.text }}
               </li>
             </ul>
           </div>
@@ -545,6 +549,16 @@ const formatDepartments = (departments: string[] | undefined): string => {
   color: #4b5563;
   margin-bottom: 0.35rem;
   line-height: 1.5;
+}
+
+.other-notes-column li.tracking {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.other-notes-column li.planned {
+  color: #2563eb;
+  font-style: italic;
 }
 
 .status-light {

@@ -143,8 +143,12 @@
               <div v-if="currentSlideData.project?.notes?.length" class="other-notes-column">
                 <div class="section-label">其他補充事項</div>
                 <ul>
-                  <li v-for="(note, i) in currentSlideData.project?.notes.slice(0, 5)" :key="i">
-                    {{ note }}
+                  <li 
+                    v-for="(note, i) in currentSlideData.project?.notes.slice(0, 5)" 
+                    :key="i"
+                    :class="{ tracking: note.isTracking, planned: note.isPlanned }"
+                  >
+                    {{ note.text }}
                   </li>
                 </ul>
               </div>
@@ -690,6 +694,16 @@ const formatDepartments = (departments: string[] | undefined): string => {
   line-height: 1.5;
 }
 
+.other-notes-column li.tracking {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.other-notes-column li.planned {
+  color: #2563eb;
+  font-style: italic;
+}
+
 .meetings-list {
   display: flex;
   flex-direction: column;
@@ -708,6 +722,7 @@ const formatDepartments = (departments: string[] | undefined): string => {
   color: #64748b;
   font-weight: 500;
   font-size: 1rem;
+  margin-top: 0.15rem;
 }
 
 .meeting-lines {
