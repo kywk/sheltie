@@ -73,13 +73,13 @@
             <div class="departments-row">
               <div class="dept-item">
                 <span class="dept-label">主辦：</span>
-                <span class="dept-value">{{ currentSlideData.project?.departments.主辦 || '-' }}</span>
+                <span class="dept-value">{{ formatDepartments(currentSlideData.project?.departments.主辦) || '-' }}</span>
               </div>
               <div class="dept-divider">│</div>
               <div class="dept-item dept-partners">
                 <span class="dept-label">協辦：</span>
-                <span class="dept-value" :title="currentSlideData.project?.departments.協辦">
-                  {{ currentSlideData.project?.departments.協辦 || '-' }}
+                <span class="dept-value" :title="formatDepartments(currentSlideData.project?.departments.協辦)">
+                  {{ formatDepartments(currentSlideData.project?.departments.協辦) || '-' }}
                 </span>
               </div>
             </div>
@@ -299,6 +299,12 @@ const exportPPTX = () => {
   if (content.value) {
     exportToPPTX(content.value, workspaceName.value)
   }
+}
+
+// Format departments array to comma-separated string
+const formatDepartments = (departments: string[] | undefined): string => {
+  if (!departments || departments.length === 0) return ''
+  return departments.join(', ')
 }
 </script>
 

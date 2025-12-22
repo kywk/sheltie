@@ -161,14 +161,14 @@ function parseBasicInfo(
     } else if (trimmed.match(/^[\*\-]\s*主辦:/)) {
         const value = trimmed.replace(/^[\*\-]\s*主辦:/, '').trim()
         if (value) {
-            project.departments.主辦 = value.split(',').map(s => s.trim())
+            project.departments.主辦 = value.split(',').map(s => s.trim()).filter(s => s)
         }
         setCurrentDeptType('主辦')
         setInDepartments(true)
-    } else if (trimmed.match(/^[\*\-]\s*協辦.*:/)) {
-        const value = trimmed.replace(/^[\*\-]\s*協辦.*:/, '').trim()
+    } else if (trimmed.match(/^[\*\-]\s*協辦/)) {
+        const value = trimmed.replace(/^[\*\-]\s*協辦[^:]*:/, '').trim()
         if (value) {
-            project.departments.協辦 = value.split(',').map(s => s.trim())
+            project.departments.協辦 = value.split(',').map(s => s.trim()).filter(s => s)
         }
         setCurrentDeptType('協辦')
         setInDepartments(true)
@@ -186,15 +186,29 @@ function parseBasicInfo(
                 endDate
             })
         }
-    } else if (inDepartments && currentDeptType) {
-        // Parse department list items
-        const deptMatch = trimmed.match(/^[\s\t]+[\*\-]\s*(.+)$/)
-        if (deptMatch) {
-            const dept = deptMatch[1].trim()
+    } else if (line.match(/^[\s\t]+[\*\-]\s*(.+)$/)) {
+        // Parse indented list items (departments or timeline)
+        const indentMatch = line.match(/^[\s\t]+[\*\-]\s*(.+)$/)
+        if (indentMatch && inDepartments && currentDeptType) {
+            const dept = indentMatch[1].trim()
             if (currentDeptType === '主辦') {
                 project.departments.主辦.push(dept)
             } else if (currentDeptType === '協辦') {
                 project.departments.協辦.push(dept)
+            }
+        } else if (indentMatch && inTimeline) {
+            // Parse timeline items (indented)
+            const timelineMatch = indentMatch[1].match(/^([^:]+):\s*(\d{4}-\d{2}-\d{2})(?:\s*~\s*(\d{4}-\d{2}-\d{2}))?$/)
+            if (timelineMatch) {
+                const phaseName = timelineMatch[1].trim()
+                const startDate = timelineMatch[2]
+                const endDate = timelineMatch[3] || startDate
+
+                project.phases.push({
+                    name: phaseName,
+                    startDate,
+                    endDate
+                })
             }
         }
     }
