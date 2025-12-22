@@ -117,7 +117,7 @@
         <div class="bottom-section">
           <!-- Left 2/3: 會辦狀況 -->
           <div class="meetings-column">
-            <div class="section-title">會辦狀況</div>
+            <div class="section-label">會辦狀況</div>
             <div class="meetings-list">
               <div
                 v-for="(meeting, i) in slide.project?.meetings.slice(0, 5)"
