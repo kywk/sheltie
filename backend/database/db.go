@@ -65,13 +65,17 @@ func Init(dbPath string) error {
 	);
 
 	CREATE INDEX IF NOT EXISTS idx_versions_workspace ON workspace_versions(workspace_id);
-
-	-- Add version column to existing workspaces if it doesn't exist
-	ALTER TABLE workspaces ADD COLUMN version INTEGER DEFAULT 0;
 	`
 
 	_, err = db.Exec(schema)
-	return err
+	if err != nil {
+		return err
+	}
+
+	// Try to add version column for existing databases (ignore error if already exists)
+	_, _ = db.Exec("ALTER TABLE workspaces ADD COLUMN version INTEGER DEFAULT 0")
+
+	return nil
 }
 
 // Close closes the database connection

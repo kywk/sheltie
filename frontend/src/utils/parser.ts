@@ -9,7 +9,7 @@ export interface Project {
     contact: string
     phases: Phase[]
     departments: {
-        主辦: string[]
+        承辦: string[]
         協辦: string[]
     }
     category: string
@@ -94,7 +94,7 @@ function parseProjectSection(section: string, lineOffset: number = 0): Project |
         progress: 0,
         contact: '',
         phases: [],
-        departments: { 主辦: [], 協辦: [] },
+        departments: { 承辦: [], 協辦: [] },
         category: '',
         meetings: [],
         notes: [],
@@ -171,12 +171,12 @@ function parseBasicInfo(
     } else if (trimmed.match(/^[\*\-]\s*相關單位:/)) {
         setInTimeline(false)
         setInDepartments(true)
-    } else if (trimmed.match(/^[\*\-]\s*主辦:/)) {
-        const value = trimmed.replace(/^[\*\-]\s*主辦:/, '').trim()
+    } else if (trimmed.match(/^[\*\-]\s*承辦:/)) {
+        const value = trimmed.replace(/^[\*\-]\s*承辦:/, '').trim()
         if (value) {
-            project.departments.主辦 = value.split(',').map(s => s.trim()).filter(s => s)
+            project.departments.承辦 = value.split(',').map(s => s.trim()).filter(s => s)
         }
-        setCurrentDeptType('主辦')
+        setCurrentDeptType('承辦')
         setInDepartments(true)
     } else if (trimmed.match(/^[\*\-]\s*協辦/)) {
         const value = trimmed.replace(/^[\*\-]\s*協辦[^:]*:/, '').trim()
@@ -204,8 +204,8 @@ function parseBasicInfo(
         const indentMatch = line.match(/^[\s\t]+[\*\-]\s*(.+)$/)
         if (indentMatch && inDepartments && currentDeptType) {
             const dept = indentMatch[1].trim()
-            if (currentDeptType === '主辦') {
-                project.departments.主辦.push(dept)
+            if (currentDeptType === '承辦') {
+                project.departments.承辦.push(dept)
             } else if (currentDeptType === '協辦') {
                 project.departments.協辦.push(dept)
             }
@@ -274,23 +274,36 @@ function isOverOneMonth(dateStr: string): boolean {
 
 export function sortProjects(projects: Project[]): Project[] {
     return [...projects].sort((a, b) => {
-        // 1. Status priority: 紅 > 黃 > 綠
+        // 1. 燈號優先順序: 紅 > 黃 > 綠
         const statusOrder: Record<string, number> = { '紅': 0, '黃': 1, '綠': 2 }
         const statusDiff = (statusOrder[a.status] ?? 3) - (statusOrder[b.status] ?? 3)
         if (statusDiff !== 0) return statusDiff
 
-        // 2. Category alphabetically
-        const categoryDiff = a.category.localeCompare(b.category)
-        if (categoryDiff !== 0) return categoryDiff
+        // 2. 窗口 Grouping (依窗口名稱排序)
+        const contactDiff = a.contact.localeCompare(b.contact)
+        if (contactDiff !== 0) return contactDiff
 
-        // 3. Earliest end date (production date)
-        const aEndDate = getLatestEndDate(a.phases)
-        const bEndDate = getLatestEndDate(b.phases)
-        return aEndDate.localeCompare(bEndDate)
+        // 3. 專案上線時間 (PROD 階段的結束時間)
+        const aProdDate = getProdEndDate(a.phases)
+        const bProdDate = getProdEndDate(b.phases)
+        return aProdDate.localeCompare(bProdDate)
     })
 }
 
-function getLatestEndDate(phases: Phase[]): string {
+// 取得 PROD 階段的結束時間，若無則取最晚的結束時間
+function getProdEndDate(phases: Phase[]): string {
+    // 優先找 PROD 相關階段
+    const prodPhase = phases.find(p => 
+        p.name.toUpperCase().includes('PROD') || 
+        p.name.includes('上線') ||
+        p.name.includes('正式')
+    )
+    
+    if (prodPhase) {
+        return prodPhase.endDate
+    }
+    
+    // 若無 PROD 階段，取最晚的結束時間
     const dates = phases.map(p => p.endDate).filter(d => d)
     if (dates.length === 0) return '9999-99-99'
     return dates.sort()[dates.length - 1] || '9999-99-99'

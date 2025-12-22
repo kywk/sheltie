@@ -69,13 +69,13 @@
           </div>
 
           <div class="slide-body">
-            <!-- Departments Row -->
-            <div class="departments-row">
+            <!-- Departments Section -->
+            <div class="departments-container" :class="{ 'two-rows': shouldUseTwoRows(currentSlideData.project?.departments) }">
               <div class="dept-item">
-                <span class="dept-label">主辦：</span>
-                <span class="dept-value">{{ formatDepartments(currentSlideData.project?.departments.主辦) || '-' }}</span>
+                <span class="dept-label">承辦：</span>
+                <span class="dept-value">{{ formatDepartments(currentSlideData.project?.departments.承辦) || '-' }}</span>
               </div>
-              <div class="dept-divider">│</div>
+              <div class="dept-divider" v-if="!shouldUseTwoRows(currentSlideData.project?.departments)">│</div>
               <div class="dept-item dept-partners">
                 <span class="dept-label">協辦：</span>
                 <span class="dept-value" :title="formatDepartments(currentSlideData.project?.departments.協辦)">
@@ -323,6 +323,13 @@ const formatDepartments = (departments: string[] | undefined): string => {
   if (!departments || departments.length === 0) return ''
   return departments.join(', ')
 }
+
+// Check if should use two rows layout
+const shouldUseTwoRows = (departments: { 承辦: string[], 協辦: string[] } | undefined): boolean => {
+  if (!departments) return false
+  const totalCount = (departments.承辦?.length || 0) + (departments.協辦?.length || 0)
+  return totalCount > 8
+}
 </script>
 
 <style scoped>
@@ -537,13 +544,18 @@ const formatDepartments = (departments: string[] | undefined): string => {
   font-weight: 500;
 }
 
-/* Departments Row */
-.departments-row {
+/* Departments Container */
+.departments-container {
   display: flex;
   align-items: baseline;
   gap: 1rem;
   font-size: 1.2rem;
   padding-top: 0.25rem;
+}
+
+.departments-container.two-rows {
+  flex-direction: column;
+  gap: 0.35rem;
 }
 
 .dept-item {
@@ -552,14 +564,24 @@ const formatDepartments = (departments: string[] | undefined): string => {
   gap: 0.25rem;
 }
 
+.two-rows .dept-item {
+  width: 100%;
+}
+
 .dept-label {
   color: #64748b;
   font-weight: 500;
   flex-shrink: 0;
 }
 
+.two-rows .dept-label {
+  width: 4rem;
+}
+
 .dept-value {
   color: #1e293b;
+  flex: 1;
+  line-height: 1.4;
 }
 
 .dept-divider {
@@ -580,6 +602,14 @@ const formatDepartments = (departments: string[] | undefined): string => {
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.4;
+}
+
+.two-rows .dept-partners .dept-value {
+  display: block;
+  -webkit-line-clamp: unset;
+  -webkit-box-orient: unset;
+  overflow: visible;
+  text-overflow: unset;
 }
 
 .section-label {
