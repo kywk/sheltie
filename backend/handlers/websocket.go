@@ -41,7 +41,7 @@ func HandleWebSocket(c *gin.Context) {
 	}
 
 	// Verify workspace exists
-	workspace, err := database.GetWorkspace(workspaceID)
+	_, err := database.GetWorkspace(workspaceID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Workspace not found"})
 		return
@@ -61,10 +61,15 @@ func HandleWebSocket(c *gin.Context) {
 	wsHub.Register <- client
 
 	// Send current content to new client
+	doc := wsHub.GetVersionManager().GetDocument(workspaceID)
+	content, version, hash := doc.GetState()
+
 	initialMsg := &ws.Message{
 		Type:        ws.MessageTypeContent,
-		Content:     workspace.Content,
+		Content:     content,
 		WorkspaceID: workspaceID,
+		Version:     version,
+		Hash:        hash,
 	}
 
 	go func() {

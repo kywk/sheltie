@@ -15,6 +15,7 @@ type Workspace struct {
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	Content     string    `json:"content"`
+	Version     int64     `json:"version"`
 	CreatedAt   time.Time `json:"createdAt"`
 	UpdatedAt   time.Time `json:"updatedAt"`
 }
@@ -50,6 +51,7 @@ func Init(dbPath string) error {
 		name TEXT NOT NULL,
 		description TEXT DEFAULT '',
 		content TEXT DEFAULT '',
+		version INTEGER DEFAULT 0,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);
@@ -63,6 +65,9 @@ func Init(dbPath string) error {
 	);
 
 	CREATE INDEX IF NOT EXISTS idx_versions_workspace ON workspace_versions(workspace_id);
+
+	-- Add version column to existing workspaces if it doesn't exist
+	ALTER TABLE workspaces ADD COLUMN version INTEGER DEFAULT 0;
 	`
 
 	_, err = db.Exec(schema)
@@ -85,8 +90,8 @@ func GetDB() *sql.DB {
 // CreateWorkspace creates a new workspace
 func CreateWorkspace(ws *Workspace) error {
 	_, err := db.Exec(
-		"INSERT INTO workspaces (id, name, description, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
-		ws.ID, ws.Name, ws.Description, ws.Content, ws.CreatedAt, ws.UpdatedAt,
+		"INSERT INTO workspaces (id, name, description, content, version, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		ws.ID, ws.Name, ws.Description, ws.Content, ws.Version, ws.CreatedAt, ws.UpdatedAt,
 	)
 	return err
 }
@@ -95,9 +100,9 @@ func CreateWorkspace(ws *Workspace) error {
 func GetWorkspace(id string) (*Workspace, error) {
 	ws := &Workspace{}
 	err := db.QueryRow(
-		"SELECT id, name, description, content, created_at, updated_at FROM workspaces WHERE id = ?",
+		"SELECT id, name, description, content, version, created_at, updated_at FROM workspaces WHERE id = ?",
 		id,
-	).Scan(&ws.ID, &ws.Name, &ws.Description, &ws.Content, &ws.CreatedAt, &ws.UpdatedAt)
+	).Scan(&ws.ID, &ws.Name, &ws.Description, &ws.Content, &ws.Version, &ws.CreatedAt, &ws.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +111,7 @@ func GetWorkspace(id string) (*Workspace, error) {
 
 // GetAllWorkspaces retrieves all workspaces
 func GetAllWorkspaces() ([]*Workspace, error) {
-	rows, err := db.Query("SELECT id, name, description, content, created_at, updated_at FROM workspaces ORDER BY updated_at DESC")
+	rows, err := db.Query("SELECT id, name, description, content, version, created_at, updated_at FROM workspaces ORDER BY updated_at DESC")
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +120,7 @@ func GetAllWorkspaces() ([]*Workspace, error) {
 	var workspaces []*Workspace
 	for rows.Next() {
 		ws := &Workspace{}
-		if err := rows.Scan(&ws.ID, &ws.Name, &ws.Description, &ws.Content, &ws.CreatedAt, &ws.UpdatedAt); err != nil {
+		if err := rows.Scan(&ws.ID, &ws.Name, &ws.Description, &ws.Content, &ws.Version, &ws.CreatedAt, &ws.UpdatedAt); err != nil {
 			return nil, err
 		}
 		workspaces = append(workspaces, ws)
@@ -127,10 +132,28 @@ func GetAllWorkspaces() ([]*Workspace, error) {
 func UpdateWorkspace(ws *Workspace) error {
 	ws.UpdatedAt = time.Now()
 	_, err := db.Exec(
-		"UPDATE workspaces SET name = ?, description = ?, content = ?, updated_at = ? WHERE id = ?",
-		ws.Name, ws.Description, ws.Content, ws.UpdatedAt, ws.ID,
+		"UPDATE workspaces SET name = ?, description = ?, content = ?, version = ?, updated_at = ? WHERE id = ?",
+		ws.Name, ws.Description, ws.Content, ws.Version, ws.UpdatedAt, ws.ID,
 	)
 	return err
+}
+
+// UpdateWorkspaceContent updates only the content field with version check
+func UpdateWorkspaceContentWithVersion(id, content string, expectedVersion int64) (bool, error) {
+	result, err := db.Exec(
+		"UPDATE workspaces SET content = ?, updated_at = ?, version = version + 1 WHERE id = ? AND version = ?",
+		content, time.Now(), id, expectedVersion,
+	)
+	if err != nil {
+		return false, err
+	}
+	
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	
+	return rowsAffected > 0, nil
 }
 
 // UpdateWorkspaceContent updates only the content field

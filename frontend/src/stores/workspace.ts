@@ -58,6 +58,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const currentUsername = ref<string>('')
     const users = ref<Map<string, UserPresence>>(new Map())
 
+    // Version control
+    const documentVersion = ref<number>(0)
+    const documentHash = ref<string>('')
+    const pendingChanges = ref<boolean>(false)
+
     // Get list of other connected users (excluding self)
     const otherUsers = computed(() => {
         return Array.from(users.value.values()).filter(u => u.id !== currentUserId.value)
@@ -143,8 +148,18 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
                 switch (message.type) {
                     case 'content':
-                        if (currentWorkspace.value && message.content !== currentWorkspace.value.content) {
+                        if (currentWorkspace.value) {
+                            if (message.conflict) {
+                                // Conflict detected - show warning and update to server version
+                                console.warn('Content conflict detected, updating to server version')
+                                // Could show a toast notification here
+                            }
+                            
+                            // Always update to the server's version
                             currentWorkspace.value.content = message.content
+                            documentVersion.value = message.version || 0
+                            documentHash.value = message.hash || ''
+                            pendingChanges.value = false
                         }
                         break
 
@@ -191,6 +206,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
                                 lastSeen: Date.now()
                             })
                         }
+                        // Initialize version info if this is the first sync
+                        if (message.version !== undefined) {
+                            documentVersion.value = message.version
+                            documentHash.value = message.hash || ''
+                        }
                         break
                 }
             } catch (e) {
@@ -211,9 +231,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
     const sendContent = (content: string) => {
         if (ws.value && ws.value.readyState === WebSocket.OPEN) {
+            pendingChanges.value = true
             ws.value.send(JSON.stringify({
                 type: 'content',
-                content
+                content,
+                version: documentVersion.value,
+                hash: documentHash.value
             }))
         }
     }
@@ -259,6 +282,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         userCount,
         currentUserId,
         currentUsername,
+        documentVersion,
+        documentHash,
+        pendingChanges,
         getUserColor,
         getUserIcon,
         fetchWorkspace,

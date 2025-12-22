@@ -12,11 +12,12 @@ import (
 
 // Message types
 const (
-	MessageTypeContent = "content"
-	MessageTypeJoin    = "join"
-	MessageTypeLeave   = "leave"
-	MessageTypeCursor  = "cursor"
-	MessageTypeUsers   = "users"
+	MessageTypeContent   = "content"
+	MessageTypeOperation = "operation"
+	MessageTypeJoin      = "join"
+	MessageTypeLeave     = "leave"
+	MessageTypeCursor    = "cursor"
+	MessageTypeUsers     = "users"
 )
 
 // Message represents a WebSocket message
@@ -30,6 +31,9 @@ type Message struct {
 	SelectionStart int        `json:"selectionStart,omitempty"`
 	SelectionEnd   int        `json:"selectionEnd,omitempty"`
 	Users          []UserInfo `json:"users,omitempty"`
+	Version        int64      `json:"version,omitempty"`
+	Hash           string     `json:"hash,omitempty"`
+	Conflict       bool       `json:"conflict,omitempty"`
 }
 
 // UserInfo represents basic user data for list
@@ -72,6 +76,9 @@ type Hub struct {
 	lastContentTime  map[string]time.Time
 	contentMu        sync.RWMutex
 	AutoSaveInterval time.Duration
+
+	// Version manager
+	versionManager *VersionManager
 }
 
 // NewHub creates a new Hub instance
@@ -84,6 +91,7 @@ func NewHub() *Hub {
 		lastContent:      make(map[string]string),
 		lastContentTime:  make(map[string]time.Time),
 		AutoSaveInterval: 60 * time.Second, // Default 60 seconds
+		versionManager:   NewVersionManager(),
 	}
 	return hub
 }
@@ -141,14 +149,39 @@ func (h *Hub) Run() {
 		case message := <-h.Broadcast:
 			switch message.Type {
 			case MessageTypeContent:
-				// Store content for auto-save
-				h.contentMu.Lock()
-				h.lastContent[message.WorkspaceID] = message.Content
-				h.lastContentTime[message.WorkspaceID] = time.Now()
-				h.contentMu.Unlock()
+				// Use version control for content updates
+				doc := h.versionManager.GetDocument(message.WorkspaceID)
+				result := doc.UpdateContent(message.Content, message.Version, message.Hash)
 
-				// Broadcast to all clients in the room
-				h.broadcastToRoom(message.WorkspaceID, message, nil)
+				if result.Success {
+					// Update successful - broadcast to all clients
+					h.contentMu.Lock()
+					h.lastContent[message.WorkspaceID] = result.Content
+					h.lastContentTime[message.WorkspaceID] = time.Now()
+					h.contentMu.Unlock()
+
+					response := &Message{
+						Type:        MessageTypeContent,
+						Content:     result.Content,
+						WorkspaceID: message.WorkspaceID,
+						Version:     result.Version,
+						Hash:        result.Hash,
+						Conflict:    false,
+					}
+					h.broadcastToRoom(message.WorkspaceID, response, nil)
+				} else {
+					// Conflict detected - send current state back to sender
+					conflictResponse := &Message{
+						Type:        MessageTypeContent,
+						Content:     result.Content,
+						WorkspaceID: message.WorkspaceID,
+						Version:     result.Version,
+						Hash:        result.Hash,
+						Conflict:    true,
+					}
+					// Send only to the client that caused the conflict
+					h.sendToUser(message.WorkspaceID, message.UserID, conflictResponse)
+				}
 
 			case MessageTypeCursor:
 				// Update client's cursor position
@@ -216,6 +249,34 @@ func (h *Hub) getUsersInRoom(workspaceID string) []UserInfo {
 	return users
 }
 
+// sendToUser sends a message to a specific user in a workspace
+func (h *Hub) sendToUser(workspaceID, userID string, message *Message) {
+	data, err := json.Marshal(message)
+	if err != nil {
+		log.Printf("Error marshaling message: %v", err)
+		return
+	}
+
+	h.mu.RLock()
+	room := h.Rooms[workspaceID]
+	var targetClient *Client
+	for client := range room {
+		if client.ID == userID {
+			targetClient = client
+			break
+		}
+	}
+	h.mu.RUnlock()
+
+	if targetClient != nil {
+		select {
+		case targetClient.Send <- data:
+		default:
+			log.Printf("Failed to send message to user %s", userID)
+		}
+	}
+}
+
 // broadcastToRoom sends a message to all clients in a room
 func (h *Hub) broadcastToRoom(workspaceID string, message *Message, exclude *Client) {
 	data, err := json.Marshal(message)
@@ -275,4 +336,9 @@ func (h *Hub) GetClientCount(workspaceID string) int {
 		return len(room)
 	}
 	return 0
+}
+
+// GetVersionManager returns the version manager
+func (h *Hub) GetVersionManager() *VersionManager {
+	return h.versionManager
 }

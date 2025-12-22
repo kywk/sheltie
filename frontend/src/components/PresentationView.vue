@@ -119,7 +119,7 @@
                 <div class="section-label">會辦狀況</div>
                 <div class="meetings-list">
                   <div
-                    v-for="(meeting, i) in currentSlideData.project?.meetings.slice(0, 4)"
+                    v-for="(meeting, i) in currentSlideData.project?.meetings.slice(0, 5)"
                     :key="i"
                     class="meeting-entry"
                     :class="{ old: meeting.isOld }"
@@ -127,7 +127,7 @@
                     <div class="meeting-date">{{ meeting.date }}</div>
                     <div class="meeting-lines">
                       <div
-                        v-for="(line, j) in meeting.lines.slice(0, 3)"
+                        v-for="(line, j) in meeting.lines"
                         :key="j"
                         class="meeting-line"
                         :class="{ tracking: line.isTracking, planned: line.isPlanned }"
