@@ -9,8 +9,8 @@ export interface Project {
     contact: string
     phases: Phase[]
     departments: {
-        主辦: string
-        協辦: string
+        主辦: string[]
+        協辦: string[]
     }
     category: string
     meetings: MeetingEntry[]
@@ -87,7 +87,7 @@ function parseProjectSection(section: string, lineOffset: number = 0): Project |
         progress: 0,
         contact: '',
         phases: [],
-        departments: { 主辦: '', 協辦: '' },
+        departments: { 主辦: [], 協辦: [] },
         category: '',
         meetings: [],
         notes: [],
@@ -98,21 +98,29 @@ function parseProjectSection(section: string, lineOffset: number = 0): Project |
     let currentMeeting: MeetingEntry | null = null
     let inTimeline = false
 
+    let inDepartments = false
+    let currentDeptType = ''
+
     for (const line of lines) {
         if (line.startsWith('## ')) {
             currentSection = line.replace('## ', '').trim()
             currentMeeting = null
             inTimeline = false
+            inDepartments = false
             continue
         }
 
         if (currentSection === '基本資訊') {
-            parseBasicInfo(line, project, inTimeline, (v) => { inTimeline = v })
+            parseBasicInfo(line, project, inTimeline, inDepartments, currentDeptType, 
+                (v) => { inTimeline = v }, 
+                (v) => { inDepartments = v },
+                (v) => { currentDeptType = v }
+            )
         } else if (currentSection.includes('會辦狀況')) {
             parseMeeting(line, project, currentMeeting, (m) => { currentMeeting = m })
         } else if (currentSection === '其他補充') {
-            if (line.startsWith('- ') && line.length > 2) {
-                project.notes.push(line.replace('- ', '').trim())
+            if (line.match(/^[\*\-]\s+/) && line.length > 2) {
+                project.notes.push(line.replace(/^[\*\-]\s+/, '').trim())
             }
         }
     }
@@ -124,34 +132,49 @@ function parseBasicInfo(
     line: string,
     project: Project,
     inTimeline: boolean,
-    setInTimeline: (v: boolean) => void
+    inDepartments: boolean,
+    currentDeptType: string,
+    setInTimeline: (v: boolean) => void,
+    setInDepartments: (v: boolean) => void,
+    setCurrentDeptType: (v: string) => void
 ) {
     const trimmed = line.trim()
 
-    if (trimmed.startsWith('- 燈號:')) {
-        const value = trimmed.replace('- 燈號:', '').trim()
+    if (trimmed.match(/^[\*\-]\s*燈號:/)) {
+        const value = trimmed.replace(/^[\*\-]\s*燈號:/, '').trim()
         project.status = value
-    } else if (trimmed.startsWith('- 狀態:') || trimmed.startsWith('- 目前狀態:')) {
-        project.currentState = trimmed.replace(/- (目前)?狀態:/, '').trim()
-    } else if (trimmed.startsWith('- 進度:')) {
-        const value = trimmed.replace('- 進度:', '').trim().replace('%', '')
+    } else if (trimmed.match(/^[\*\-]\s*(目前)?狀態:/)) {
+        project.currentState = trimmed.replace(/^[\*\-]\s*(目前)?狀態:/, '').trim()
+    } else if (trimmed.match(/^[\*\-]\s*進度:/)) {
+        const value = trimmed.replace(/^[\*\-]\s*進度:/, '').trim().replace('%', '')
         project.progress = parseInt(value) || 0
-    } else if (trimmed.startsWith('- 窗口:')) {
-        project.contact = trimmed.replace('- 窗口:', '').trim()
-    } else if (trimmed.startsWith('- 分類:')) {
-        project.category = trimmed.replace('- 分類:', '').trim()
-    } else if (trimmed.startsWith('- 時程:')) {
+    } else if (trimmed.match(/^[\*\-]\s*窗口:/)) {
+        project.contact = trimmed.replace(/^[\*\-]\s*窗口:/, '').trim()
+    } else if (trimmed.match(/^[\*\-]\s*分類:/)) {
+        project.category = trimmed.replace(/^[\*\-]\s*分類:/, '').trim()
+    } else if (trimmed.match(/^[\*\-]\s*時程:/)) {
         setInTimeline(true)
-    } else if (trimmed.startsWith('- 相關單位:')) {
+        setInDepartments(false)
+    } else if (trimmed.match(/^[\*\-]\s*相關單位:/)) {
         setInTimeline(false)
-    } else if (trimmed.startsWith('- 主辦:')) {
-        project.departments.主辦 = trimmed.replace('- 主辦:', '').trim()
-    } else if (trimmed.startsWith('- 協辦/協同:') || trimmed.startsWith('- 協辦:')) {
-        project.departments.協辦 = trimmed.replace(/- 協辦.*:/, '').trim()
+        setInDepartments(true)
+    } else if (trimmed.match(/^[\*\-]\s*主辦:/)) {
+        const value = trimmed.replace(/^[\*\-]\s*主辦:/, '').trim()
+        if (value) {
+            project.departments.主辦 = value.split(',').map(s => s.trim())
+        }
+        setCurrentDeptType('主辦')
+        setInDepartments(true)
+    } else if (trimmed.match(/^[\*\-]\s*協辦.*:/)) {
+        const value = trimmed.replace(/^[\*\-]\s*協辦.*:/, '').trim()
+        if (value) {
+            project.departments.協辦 = value.split(',').map(s => s.trim())
+        }
+        setCurrentDeptType('協辦')
+        setInDepartments(true)
     } else if (inTimeline) {
         // Parse any phase format: - 階段名: YYYY-MM-DD ~ YYYY-MM-DD
-        // Supports both single date and date range
-        const phaseMatch = trimmed.match(/^-\s*([^:]+):\s*(\d{4}-\d{2}-\d{2})(?:\s*~\s*(\d{4}-\d{2}-\d{2}))?$/)
+        const phaseMatch = trimmed.match(/^[\*\-]\s*([^:]+):\s*(\d{4}-\d{2}-\d{2})(?:\s*~\s*(\d{4}-\d{2}-\d{2}))?$/)
         if (phaseMatch) {
             const phaseName = phaseMatch[1].trim()
             const startDate = phaseMatch[2]
@@ -162,6 +185,17 @@ function parseBasicInfo(
                 startDate,
                 endDate
             })
+        }
+    } else if (inDepartments && currentDeptType) {
+        // Parse department list items
+        const deptMatch = trimmed.match(/^[\s\t]+[\*\-]\s*(.+)$/)
+        if (deptMatch) {
+            const dept = deptMatch[1].trim()
+            if (currentDeptType === '主辦') {
+                project.departments.主辦.push(dept)
+            } else if (currentDeptType === '協辦') {
+                project.departments.協辦.push(dept)
+            }
         }
     }
 }
@@ -175,7 +209,7 @@ function parseMeeting(
     const trimmed = line.trim()
 
     // Date line: - YYYY-MM-DD (must be exactly a date, nothing else)
-    const dateMatch = trimmed.match(/^-\s*(\d{4}-\d{2}-\d{2})$/)
+    const dateMatch = trimmed.match(/^[\*\-]\s*(\d{4}-\d{2}-\d{2})$/)
     if (dateMatch) {
         const date = dateMatch[1]
         const entry: MeetingEntry = {
@@ -188,11 +222,11 @@ function parseMeeting(
         return
     }
 
-    // Content line: must be indented (spaces or tabs) followed by -
-    // Format:   - 會辦內容 or \t- 會辦內容
-    const isIndented = line.match(/^[\s\t]+-.+/)
+    // Content line: must be indented (spaces or tabs) followed by - or *
+    // Format:   - 會辦內容 or \t* 會辦內容
+    const isIndented = line.match(/^[\s\t]+[\*\-].+/)
     if (currentMeeting && isIndented) {
-        const content = trimmed.replace(/^-\s*/, '').trim()
+        const content = trimmed.replace(/^[\*\-]\s*/, '').trim()
         if (content) {
             const meetingLine: MeetingLine = {
                 text: content,

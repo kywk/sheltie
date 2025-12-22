@@ -32,9 +32,14 @@ const { loading } = useEditor((root) => {
       
       // Setup listener for content changes
       ctx.get(listenerCtx).markdownUpdated((_, markdown) => {
-        if (markdown !== internalContent.value) {
-          internalContent.value = markdown
-          emit('contentChange', markdown)
+        // Remove extra blank lines between list items
+        const cleaned = markdown
+          .replace(/^(\*|-)\s+(.+)\n\n(?=\1\s)/gm, '$1 $2\n')
+          .replace(/^(\s+)(\*|-)\s+(.+)\n\n(?=\1\2\s)/gm, '$1$2 $3\n')
+        
+        if (cleaned !== internalContent.value) {
+          internalContent.value = cleaned
+          emit('contentChange', cleaned)
         }
       })
     })

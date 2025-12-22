@@ -82,12 +82,12 @@
           <div class="departments-row">
             <div class="dept-item">
               <span class="dept-label">主辦</span>
-              <span class="dept-value">{{ slide.project?.departments.主辦 || '-' }}</span>
+              <span class="dept-value">{{ formatDepartments(slide.project?.departments.主辦) || '-' }}</span>
             </div>
             <div class="dept-item dept-partners">
               <span class="dept-label">協辦</span>
-              <span class="dept-value" :title="slide.project?.departments.協辦">
-                {{ slide.project?.departments.協辦 || '-' }}
+              <span class="dept-value" :title="formatDepartments(slide.project?.departments.協辦)">
+                {{ formatDepartments(slide.project?.departments.協辦) || '-' }}
               </span>
             </div>
           </div>
@@ -195,6 +195,12 @@ const slides = computed<Slide[]>(() => {
     return []
   }
 })
+
+// Format departments array to comma-separated string
+const formatDepartments = (departments: string[] | undefined): string => {
+  if (!departments || departments.length === 0) return ''
+  return departments.join(', ')
+}
 </script>
 
 <style scoped>
