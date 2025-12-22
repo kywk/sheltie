@@ -112,28 +112,41 @@
               </div>
             </div>
 
-            <!-- Meeting Notes -->
-            <div class="meetings-section">
-              <div class="section-label">會辦狀況</div>
-              <div class="meetings-list">
-                <div
-                  v-for="(meeting, i) in currentSlideData.project?.meetings.slice(0, 4)"
-                  :key="i"
-                  class="meeting-entry"
-                  :class="{ old: meeting.isOld }"
-                >
-                  <div class="meeting-date">{{ meeting.date }}</div>
-                  <div class="meeting-lines">
-                    <div
-                      v-for="(line, j) in meeting.lines.slice(0, 3)"
-                      :key="j"
-                      class="meeting-line"
-                      :class="{ tracking: line.isTracking, planned: line.isPlanned }"
-                    >
-                      {{ line.text }}
+            <!-- Bottom Section: 2/3 Meetings + 1/3 Other Notes -->
+            <div class="bottom-section">
+              <!-- Left 2/3: 會辦狀況 -->
+              <div class="meetings-column">
+                <div class="section-label">會辦狀況</div>
+                <div class="meetings-list">
+                  <div
+                    v-for="(meeting, i) in currentSlideData.project?.meetings.slice(0, 4)"
+                    :key="i"
+                    class="meeting-entry"
+                    :class="{ old: meeting.isOld }"
+                  >
+                    <div class="meeting-date">{{ meeting.date }}</div>
+                    <div class="meeting-lines">
+                      <div
+                        v-for="(line, j) in meeting.lines.slice(0, 3)"
+                        :key="j"
+                        class="meeting-line"
+                        :class="{ tracking: line.isTracking, planned: line.isPlanned }"
+                      >
+                        {{ line.text }}
+                      </div>
                     </div>
                   </div>
                 </div>
+              </div>
+
+              <!-- Right 1/3: 其他補充事項 -->
+              <div v-if="currentSlideData.project?.notes?.length" class="other-notes-column">
+                <div class="section-label">其他補充事項</div>
+                <ul>
+                  <li v-for="(note, i) in currentSlideData.project?.notes.slice(0, 5)" :key="i">
+                    {{ note }}
+                  </li>
+                </ul>
               </div>
             </div>
           </div>
@@ -641,10 +654,40 @@ const formatDepartments = (departments: string[] | undefined): string => {
   font-size: 14px;
 }
 
-/* Meetings */
-.meetings-section {
+/* Bottom Section - 2/3 + 1/3 Layout */
+.bottom-section {
+  display: flex;
+  gap: 1.5rem;
   flex: 1;
+  min-height: 0;
   overflow: hidden;
+}
+
+.meetings-column {
+  flex: 2;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.other-notes-column {
+  flex: 1;
+  min-width: 0;
+  padding-left: 1rem;
+  border-left: 2px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.other-notes-column ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  list-style-type: disc;
+}
+
+.other-notes-column li {
+  font-size: 1.25rem;
+  color: #4b5563;
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
 }
 
 .meetings-list {
@@ -655,15 +698,16 @@ const formatDepartments = (departments: string[] | undefined): string => {
 
 .meeting-entry {
   display: flex;
-  gap: 1rem;
-  font-size: 1.15rem;
+  gap: 0.15rem;
+  font-size: 1.25rem;
 }
 
 .meeting-date {
-  width: 110px;
+  width: 105px;
   flex-shrink: 0;
   color: #64748b;
   font-weight: 500;
+  font-size: 1rem;
 }
 
 .meeting-lines {

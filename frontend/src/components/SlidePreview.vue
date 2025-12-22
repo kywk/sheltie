@@ -51,51 +51,41 @@
         class="slide-card project-slide clickable-slide"
         @click="$emit('jumpToLine', slide.project?.lineNumber ?? 0)"
       >
+        <!-- Header with Tags -->
         <div class="slide-header">
-          <span class="status-light" :class="getStatusClass(slide.project?.status)">
-            {{ getStatusIcon(slide.project?.status) }}
-          </span>
-          <div class="slide-title">{{ slide.project?.name }}</div>
+          <div class="header-main">
+            <span class="status-light" :class="getStatusClass(slide.project?.status)">
+              {{ getStatusIcon(slide.project?.status) }}
+            </span>
+            <div class="slide-title">{{ slide.project?.name }}</div>
+          </div>
+          <div class="header-tags">
+            <span class="tag tag-state">{{ slide.project?.currentState || '-' }}</span>
+            <span class="tag tag-progress">{{ slide.project?.progress }}%</span>
+            <span class="tag tag-contact" v-if="slide.project?.contact">{{ slide.project?.contact }}</span>
+            <span class="tag tag-category" v-if="slide.project?.category">{{ slide.project?.category }}</span>
+          </div>
         </div>
 
-        <!-- Basic Info Section - Compact Layout -->
-        <div class="info-section">
-          <div class="info-row">
-            <div class="info-item">
-              <span class="info-label">狀態</span>
-              <span class="info-value">{{ slide.project?.currentState || '-' }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">進度</span>
-              <span class="info-value">{{ slide.project?.progress }}%</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">窗口</span>
-              <span class="info-value">{{ slide.project?.contact || '-' }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">分類</span>
-              <span class="info-value">{{ slide.project?.category || '-' }}</span>
-            </div>
-          </div>
-          <!-- Departments Row - Expandable -->
+        <div class="slide-body">
+          <!-- Departments Row -->
           <div class="departments-row">
             <div class="dept-item">
-              <span class="dept-label">主辦</span>
+              <span class="dept-label">主辦：</span>
               <span class="dept-value">{{ formatDepartments(slide.project?.departments.主辦) || '-' }}</span>
             </div>
+            <div class="dept-divider">│</div>
             <div class="dept-item dept-partners">
-              <span class="dept-label">協辦</span>
+              <span class="dept-label">協辦：</span>
               <span class="dept-value" :title="formatDepartments(slide.project?.departments.協辦)">
                 {{ formatDepartments(slide.project?.departments.協辦) || '-' }}
               </span>
             </div>
           </div>
-        </div>
 
         <!-- Timeline Gantt Chart -->
         <div v-if="slide.project?.phases.length" class="timeline-section">
-          <div class="section-title">時程</div>
+          <div class="section-label">時程</div>
           <div class="timeline-gantt">
             <!-- Phase arrows -->
             <div class="gantt-phases">
@@ -119,46 +109,50 @@
             >
               <div class="today-line"></div>
               <div class="today-marker">📍</div>
-              <div class="today-label">今天</div>
             </div>
           </div>
         </div>
 
-        <!-- Meeting Notes (bottom 2/3) -->
-        <div class="notes-section">
-          <div class="section-title">會辦狀況</div>
-          <div class="meetings-list">
-            <div
-              v-for="(meeting, i) in slide.project?.meetings.slice(0, 5)"
-              :key="i"
-              class="meeting-entry"
-              :class="{ old: meeting.isOld }"
-            >
-              <div class="meeting-date">{{ meeting.date }}</div>
-              <div class="meeting-lines">
-                <div
-                  v-for="(line, j) in meeting.lines"
-                  :key="j"
-                  class="meeting-line"
-                  :class="{
-                    tracking: line.isTracking,
-                    planned: line.isPlanned
-                  }"
-                >
-                  {{ line.text }}
+        <!-- Bottom Section: 2/3 Meeting Notes + 1/3 Other Notes -->
+        <div class="bottom-section">
+          <!-- Left 2/3: 會辦狀況 -->
+          <div class="meetings-column">
+            <div class="section-title">會辦狀況</div>
+            <div class="meetings-list">
+              <div
+                v-for="(meeting, i) in slide.project?.meetings.slice(0, 5)"
+                :key="i"
+                class="meeting-entry"
+                :class="{ old: meeting.isOld }"
+              >
+                <div class="meeting-date">{{ meeting.date }}</div>
+                <div class="meeting-lines">
+                  <div
+                    v-for="(line, j) in meeting.lines"
+                    :key="j"
+                    class="meeting-line"
+                    :class="{
+                      tracking: line.isTracking,
+                      planned: line.isPlanned
+                    }"
+                  >
+                    {{ line.text }}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div v-if="slide.project?.notes.length" class="other-notes">
-            <div class="section-title">其他補充</div>
+          <!-- Right 1/3: 其他補充事項 -->
+          <div v-if="slide.project?.notes.length" class="other-notes-column">
+            <div class="section-label">其他補充事項</div>
             <ul>
-              <li v-for="(note, i) in slide.project?.notes.slice(0, 3)" :key="i">
+              <li v-for="(note, i) in slide.project?.notes.slice(0, 5)" :key="i">
                 {{ note }}
               </li>
             </ul>
           </div>
+        </div>
         </div>
       </div>
     </template>
@@ -227,9 +221,17 @@ const formatDepartments = (departments: string[] | undefined): string => {
 
 .slide-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-md);
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.header-main {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .slide-title {
@@ -284,57 +286,66 @@ const formatDepartments = (departments: string[] | undefined): string => {
   transform: translateY(-2px);
 }
 
-/* Info Section - Card Layout */
-.info-section {
-  margin-bottom: var(--spacing-md);
-  padding-bottom: var(--spacing-md);
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.info-row {
+/* Header Tags */
+.header-tags {
   display: flex;
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-sm);
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
 }
 
-.info-item {
+.tag {
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.tag-state {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.tag-progress {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.tag-contact {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.tag-category {
+  background: #f3e8ff;
+  color: #7c3aed;
+}
+
+.slide-body {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  flex: 1;
-  padding: var(--spacing-xs) var(--spacing-sm);
-  background: #f9fafb;
-  border-radius: var(--radius-sm);
-}
-
-.info-label {
-  font-size: 10px;
-  color: #6b7280;
-  font-weight: 500;
-  text-transform: uppercase;
-}
-
-.info-value {
-  font-size: var(--font-size-sm);
-  color: #1e293b;
-  font-weight: 500;
+  gap: 0.5rem;
+  overflow: hidden;
 }
 
 /* Departments Row */
 .departments-row {
   display: flex;
-  gap: var(--spacing-md);
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  padding-top: 0.25rem;
 }
 
 .dept-item {
   display: flex;
   align-items: baseline;
-  gap: var(--spacing-xs);
-  font-size: var(--font-size-sm);
+  gap: 0.15rem;
 }
 
 .dept-label {
-  color: #6b7280;
+  color: #64748b;
   font-weight: 500;
   flex-shrink: 0;
 }
@@ -343,7 +354,12 @@ const formatDepartments = (departments: string[] | undefined): string => {
   color: #1e293b;
 }
 
-/* Allow long partner lists to wrap */
+.dept-divider {
+  color: #d1d5db;
+  flex-shrink: 0;
+}
+
+/* Partner departments - expandable */
 .dept-partners {
   flex: 1;
   min-width: 0;
@@ -358,11 +374,16 @@ const formatDepartments = (departments: string[] | undefined): string => {
   line-height: 1.4;
 }
 
+.section-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 0.25rem;
+}
+
 /* Timeline Section */
 .timeline-section {
-  margin-bottom: var(--spacing-md);
-  padding-bottom: var(--spacing-md);
-  border-bottom: 1px solid #e5e7eb;
+  padding: 0.25rem 0;
 }
 
 .timeline-gantt {
@@ -440,20 +461,24 @@ const formatDepartments = (departments: string[] | undefined): string => {
   font-size: 10px;
 }
 
-.today-label {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 9px;
-  color: #ef4444;
-  font-weight: 600;
-  white-space: nowrap;
+/* Bottom Section - 2/3 + 1/3 Layout */
+.bottom-section {
+  display: flex;
+  gap: var(--spacing-lg);
+  flex: 1;
+  min-height: 0;
 }
 
-/* Notes Section */
-.notes-section {
+.meetings-column {
+  flex: 2;
+  min-width: 0;
+}
+
+.other-notes-column {
   flex: 1;
+  min-width: 0;
+  padding-left: var(--spacing-md);
+  border-left: 1px solid #e5e7eb;
 }
 
 .section-title {
@@ -471,15 +496,16 @@ const formatDepartments = (departments: string[] | undefined): string => {
 
 .meeting-entry {
   display: flex;
-  gap: var(--spacing-sm);
-  font-size: var(--font-size-sm);
+  gap: 0.2rem;
+  font-size: 0.9rem;
 }
 
 .meeting-date {
   color: #6b7280;
-  width: 90px;
+  width: 85px;
   flex-shrink: 0;
   font-weight: 500;
+  font-size: 0.75rem;
 }
 
 .meeting-lines {
@@ -508,19 +534,17 @@ const formatDepartments = (departments: string[] | undefined): string => {
   color: #9ca3af;
 }
 
-.other-notes {
-  margin-top: var(--spacing-md);
-}
-
-.other-notes ul {
+.other-notes-column ul {
   margin: 0;
-  padding-left: var(--spacing-lg);
+  padding-left: 1rem;
+  list-style-type: disc;
 }
 
-.other-notes li {
-  font-size: var(--font-size-sm);
+.other-notes-column li {
+  font-size: 0.9rem;
   color: #4b5563;
-  margin-bottom: var(--spacing-xs);
+  margin-bottom: 0.35rem;
+  line-height: 1.5;
 }
 
 .status-light {
