@@ -328,7 +328,7 @@ const formatDepartments = (departments: string[] | undefined): string => {
 const shouldUseTwoRows = (departments: { 承辦: string[], 協辦: string[] } | undefined): boolean => {
   if (!departments) return false
   const totalCount = (departments.承辦?.length || 0) + (departments.協辦?.length || 0)
-  return totalCount > 8
+  return totalCount >= 12
 }
 </script>
 
@@ -613,7 +613,7 @@ const shouldUseTwoRows = (departments: { 承辦: string[], 協辦: string[] } | 
 }
 
 .section-label {
-  font-size: 1.1rem;
+  font-size: 1.25rem;
   font-weight: 600;
   color: #475569;
   margin-bottom: 0.4rem;
@@ -747,11 +747,11 @@ const shouldUseTwoRows = (departments: { 承辦: string[], 協辦: string[] } | 
 }
 
 .meeting-date {
-  width: 105px;
+  width: 85px;
   flex-shrink: 0;
   color: #64748b;
   font-weight: 500;
-  font-size: 1rem;
+  font-size: 0.9rem;
   margin-top: 0.15rem;
 }
 
