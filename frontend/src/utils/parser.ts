@@ -274,9 +274,11 @@ function isOverOneMonth(dateStr: string): boolean {
 
 export function sortProjects(projects: Project[]): Project[] {
     return [...projects].sort((a, b) => {
-        // 1. 燈號優先順序: 紅 > 黃 > 綠
+        // 1. 燈號優先順序: 紅 > 黃 > 綠 = 無
         const statusOrder: Record<string, number> = { '紅': 0, '黃': 1, '綠': 2 }
-        const statusDiff = (statusOrder[a.status] ?? 3) - (statusOrder[b.status] ?? 3)
+        const aStatus = statusOrder[a.status] ?? 2  // 無燈號視為綠燈
+        const bStatus = statusOrder[b.status] ?? 2  // 無燈號視為綠燈
+        const statusDiff = aStatus - bStatus
         if (statusDiff !== 0) return statusDiff
 
         // 2. 窗口 Grouping (依窗口名稱排序)
