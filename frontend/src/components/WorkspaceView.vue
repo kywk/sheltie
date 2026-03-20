@@ -1,27 +1,26 @@
 <template>
   <div class="workspace-view" :data-theme="theme">
     <SplitPane :initial-ratio="0.4" :min-left="320" :min-right="400">
+
+      <!-- ══════════════ 左側：編輯面板 ══════════════ -->
       <template #left>
-        <!-- Editor Panel -->
         <div class="panel editor-panel">
+          <!-- header：品牌 + 連線 + 頭像 + 編輯 tabs 一列 -->
           <div class="panel-header">
-            <!-- Left: Brand with workspace name + connection status -->
             <div class="header-left">
               <router-link to="/" class="brand-logo">
                 🐕 {{ workspace?.name || 'Sheltie' }}
               </router-link>
-              <!-- Connection indicator -->
-              <span 
-                class="connection-indicator" 
+              <span
+                class="connection-indicator"
                 :class="{ connected: isConnected }"
                 :title="isConnected ? `已連線 (${userCount} 人在線)` : '離線'"
               >
                 <span class="indicator-dot"></span>
               </span>
-              <!-- Other users avatars -->
               <div v-if="otherUsers.length > 0" class="user-avatars">
-                <div 
-                  v-for="user in otherUsers.slice(0, 5)" 
+                <div
+                  v-for="user in otherUsers.slice(0, 5)"
                   :key="user.id"
                   class="user-avatar"
                   :style="{ backgroundColor: user.color }"
@@ -34,33 +33,25 @@
                 </div>
               </div>
             </div>
-            <!-- Right: Controls -->
-            <div class="header-right">
-              <div class="toggle-group">
-                <button
-                  class="btn btn-ghost"
-                  :class="{ active: editorMode === 'text' }"
-                  @click="editorMode = 'text'"
-                >
-                  純文字
-                </button>
-                <button
-                  class="btn btn-ghost"
-                  :class="{ active: editorMode === 'wysiwyg' }"
-                  @click="editorMode = 'wysiwyg'"
-                >
-                  WYSIWYG
-                </button>
-              </div>
-              <button class="btn btn-ghost share-btn" @click="copyShareUrl" title="複製分享連結">
-                <span class="icon">🔗</span>
-                <span>{{ shareButtonText }}</span>
+            <!-- 編輯 tabs -->
+            <div class="header-tabs">
+              <button class="htab" :class="{ active: leftTab === 'progress' }" @click="leftTab = 'progress'">
+                📝 專案進度
+              </button>
+              <button class="htab" :class="{ active: leftTab === 'gantt-text' }" @click="leftTab = 'gantt-text'">
+                ✏️ 人力配置
+              </button>
+              <button class="htab" :class="{ active: leftTab === 'gantt-table' }" @click="leftTab = 'gantt-table'">
+                📋 人力表格
               </button>
             </div>
           </div>
+
+          <!-- 左側內容 -->
           <div class="panel-content editor-container">
-            <!-- Text editor with cursor overlay -->
-            <div v-if="editorMode === 'text'" class="editor-wrapper">
+
+            <!-- 📝 專案進度 -->
+            <div v-show="leftTab === 'progress'" class="editor-wrapper">
               <textarea
                 ref="textareaRef"
                 class="editor-textarea"
@@ -71,7 +62,6 @@
                 @select="onCursorChange"
                 placeholder="輸入專案 Markdown..."
               ></textarea>
-              <!-- Remote cursors overlay -->
               <div class="cursors-overlay">
                 <div
                   v-for="user in remoteCursors"
@@ -86,59 +76,102 @@
                 </div>
               </div>
             </div>
-            <MilkdownEditor
-              v-else
-              v-model="content"
-              @update:modelValue="onContentChange"
-            />
+
+            <!-- ✏️ 人力配置 文字 (border-collie TextEditor) -->
+            <div v-show="leftTab === 'gantt-text'" class="collie-editor-wrapper">
+              <BCTextEditor v-model="collieContent" />
+            </div>
+
+            <!-- 📋 人力表格 (border-collie TableEditor) -->
+            <div v-show="leftTab === 'gantt-table'" class="collie-editor-wrapper">
+              <BCTableEditor
+                :projects="ganttProjects"
+                @update:projects="onTableUpdateProjects"
+              />
+            </div>
+
           </div>
         </div>
       </template>
 
+      <!-- ══════════════ 右側：檢視面板 ══════════════ -->
       <template #right>
-        <!-- Preview Panel -->
         <div class="panel preview-panel">
+          <!-- header：view tabs + controls -->
           <div class="panel-header">
-            <!-- Left: Toggle Group -->
-            <div class="toggle-group">
-              <button
-                class="btn btn-ghost"
-                :class="{ active: previewMode === 'slides' }"
-                @click="previewMode = 'slides'"
-              >
-                投影片預覽
+            <div class="header-tabs">
+              <button class="htab" :class="{ active: rightTab === 'slides' }" @click="rightTab = 'slides'">
+                💻 專案投影片
+              </button>
+              <button class="htab" :class="{ active: rightTab === 'gantt-project' }" @click="rightTab = 'gantt-project'">
+                📊 專案甘特圖
+              </button>
+              <button class="htab" :class="{ active: rightTab === 'gantt-person' }" @click="rightTab = 'gantt-person'">
+                👤 人力甘特圖
               </button>
             </div>
-
-            <!-- Right: Controls -->
             <div class="panel-controls">
-              <router-link 
-                :to="`/present/${workspace?.id}`" 
-                class="btn btn-ghost play-btn"
-                title="全螢幕播放"
-              >
-                ▶️ 播放
-              </router-link>
+              <router-link
+                v-if="rightTab === 'slides'"
+                :to="`/present/${workspace?.id}`"
+                class="btn btn-ghost"
+              >▶️ 播放</router-link>
 
-              <div class="export-dropdown">
-                <button class="btn btn-ghost" @click="showExportMenu = !showExportMenu" title="匯出">
-                  📥 匯出
-                </button>
+              <div v-if="rightTab === 'slides'" class="export-dropdown">
+                <button class="btn btn-ghost" @click="showExportMenu = !showExportMenu">📥 匯出</button>
                 <div v-if="showExportMenu" class="dropdown-menu">
                   <button class="dropdown-item" @click="exportPPTX">匯出 PowerPoint</button>
                 </div>
               </div>
 
-              <button class="theme-toggle" @click="toggleTheme" :title="theme === 'dark' ? '切換淺色模式' : '切換深色模式'">
+              <!-- 甘特圖工具列 -->
+              <template v-if="rightTab !== 'slides'">
+                <button class="btn btn-ghost btn-sm-icon" @click="zoomIn">🔍+</button>
+                <button class="btn btn-ghost btn-sm-icon" @click="zoomOut">🔍-</button>
+                <span class="zoom-label">{{ ganttScale.monthWidth }}px/月</span>
+                <div class="toggle-group">
+                  <button class="btn btn-ghost btn-sm-icon" :class="{ active: barStyle === 'block' }" @click="barStyle = 'block'">▬</button>
+                  <button class="btn btn-ghost btn-sm-icon" :class="{ active: barStyle === 'arrow' }" @click="barStyle = 'arrow'">➤</button>
+                </div>
+              </template>
+
+              <button class="theme-toggle" @click="toggleTheme">
                 {{ theme === 'dark' ? '☀️' : '🌙' }}
               </button>
             </div>
           </div>
-          <div class="panel-content slide-preview-container" @click="showExportMenu = false">
-            <SlidePreview :content="content" @jumpToLine="jumpToLine" />
+
+          <!-- 右側內容 -->
+          <div
+            class="panel-content"
+            :class="rightTab === 'slides' ? 'slide-preview-container' : 'gantt-view-container'"
+            @click="showExportMenu = false"
+          >
+            <SlidePreview v-if="rightTab === 'slides'" :content="content" @jumpToLine="jumpToLine" />
+
+            <div v-else-if="rightTab === 'gantt-project'" class="gantt-scroll">
+              <ProjectGantt
+                :computed-phases="computedPhases"
+                :projects="ganttProjects"
+                :scale="ganttScale"
+                :bar-style="barStyle"
+                :time-range="ganttTimeRange"
+              />
+            </div>
+
+            <div v-else-if="rightTab === 'gantt-person'" class="gantt-scroll">
+              <PersonGantt
+                :person-assignments="personAssignments"
+                :all-persons="allPersons"
+                :scale="ganttScale"
+                :bar-style="barStyle"
+                :time-range="ganttTimeRange"
+              />
+            </div>
           </div>
         </div>
       </template>
+
     </SplitPane>
   </div>
 </template>
@@ -149,64 +182,158 @@ import { useRoute } from 'vue-router'
 import { useWorkspaceStore } from '@/stores/workspace'
 import SplitPane from './SplitPane.vue'
 import SlidePreview from './SlidePreview.vue'
-import MilkdownEditor from './MilkdownEditor.vue'
+import ProjectGantt from '../../../border-collie/src/components/ProjectGantt.vue'
+import PersonGantt from '../../../border-collie/src/components/PersonGantt.vue'
+import BCTextEditor from '../../../border-collie/src/components/TextEditor.vue'
+import BCTableEditor from '../../../border-collie/src/components/TableEditor.vue'
+import { parseText, normalizeDate, serializeToText } from '../../../border-collie/src/shared/parser'
+import type {
+  Project, ComputedPhase, PersonAssignment, GanttScale, TimeRange
+} from '../../../border-collie/src/shared/types'
 import { exportToPPTX } from '@/utils/pptx-export'
 
 const route = useRoute()
 const store = useWorkspaceStore()
 
+// ── UI State ──
 const theme = ref<'dark' | 'light'>('dark')
-const editorMode = ref<'text' | 'wysiwyg'>('text')
-const previewMode = ref<'slides'>('slides')
+const leftTab  = ref<'progress' | 'gantt-text' | 'gantt-table'>('progress')
+const rightTab = ref<'slides' | 'gantt-project' | 'gantt-person'>('slides')
 const showExportMenu = ref(false)
-const shareButtonText = ref('分享')
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 
-// Local content for editing
+// ── Content ──
 const content = ref('')
+const collieContent = ref('')
 
-// Computed from store
-const workspace = computed(() => store.currentWorkspace)
+// ── Gantt UI State ──
+const barStyle = ref<'block' | 'arrow'>('block')
+const ganttScale = ref<GanttScale>({ monthWidth: 80, rowHeight: 40 })
+
+// ── Store Computed ──
+const workspace   = computed(() => store.currentWorkspace)
 const isConnected = computed(() => store.isConnected)
-const otherUsers = computed(() => store.otherUsers)
-const userCount = computed(() => store.userCount)
+const otherUsers  = computed(() => store.otherUsers)
+const userCount   = computed(() => store.userCount)
+const remoteCursors = computed(() => store.otherUsers.filter(u => u.cursorPosition !== null))
 
-// Remote cursors (other users with cursor positions)
-const remoteCursors = computed(() => {
-  return store.otherUsers.filter(u => u.cursorPosition !== null)
+// ── Gantt Computation ──
+const ganttProjects = computed<Project[]>(() => {
+  try { return parseText(collieContent.value) }
+  catch { return [] }
 })
 
+const computedPhases = computed<ComputedPhase[]>(() => {
+  const result: ComputedPhase[] = []
+  ganttProjects.value.forEach((project, projectIndex) => {
+    let prevEndDate: string | null = null
+    project.phases.forEach(phase => {
+      const startDate = phase.startDate || prevEndDate || new Date().toISOString().slice(0, 7)
+      result.push({
+        projectName: project.name,
+        projectIndex,
+        name: phase.name,
+        startDate,
+        endDate: phase.endDate,
+        assignments: phase.assignments,
+        isContinuation: phase.startDate === null
+      })
+      prevEndDate = phase.endDate
+    })
+  })
+  return result
+})
+
+const personAssignments = computed<PersonAssignment[]>(() => {
+  const result: PersonAssignment[] = []
+  computedPhases.value.forEach(phase => {
+    phase.assignments.forEach(a => {
+      result.push({
+        person: a.name,
+        projectName: phase.projectName,
+        projectIndex: phase.projectIndex,
+        phaseName: phase.name,
+        startDate: phase.startDate,
+        endDate: phase.endDate,
+        percentage: a.percentage,
+        isContinuation: phase.isContinuation
+      })
+    })
+  })
+  return result
+})
+
+const allPersons = computed<string[]>(() => {
+  const s = new Set<string>()
+  personAssignments.value.forEach(a => s.add(a.person))
+  return Array.from(s).sort()
+})
+
+const ganttTimeRange = computed<TimeRange>(() => {
+  if (computedPhases.value.length === 0) {
+    const now = new Date()
+    return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: new Date(now.getFullYear(), now.getMonth() + 12, 0) }
+  }
+  let min = new Date('2099-12-31'), max = new Date('2000-01-01')
+  computedPhases.value.forEach(p => {
+    const s = new Date(normalizeDate(p.startDate))
+    const e = new Date(normalizeDate(p.endDate, true))
+    if (s < min) min = s
+    if (e > max) max = e
+  })
+  min.setMonth(min.getMonth() - 1)
+  max.setMonth(max.getMonth() + 1)
+  return { start: min, end: max }
+})
+
+// ── Zoom ──
+const zoomIn  = () => ganttScale.value = { ...ganttScale.value, monthWidth: Math.min(200, ganttScale.value.monthWidth + 20) }
+const zoomOut = () => ganttScale.value = { ...ganttScale.value, monthWidth: Math.max(40, ganttScale.value.monthWidth - 20) }
+
+// ── Table callback ──
+function onTableUpdateProjects(updated: Project[]) {
+  collieContent.value = serializeToText(updated)
+}
+
+// ── Lifecycle & Sync ──
 onMounted(async () => {
-  // Load theme
   const savedTheme = localStorage.getItem('sheltie-theme') as 'dark' | 'light' | null
   if (savedTheme) {
     theme.value = savedTheme
     document.documentElement.setAttribute('data-theme', savedTheme)
   }
-
-  // Fetch workspace
   const workspaceId = route.params.id as string
   await store.fetchWorkspace(workspaceId)
-
   if (store.currentWorkspace) {
     content.value = store.currentWorkspace.content
-    // Connect to WebSocket with a random username
-    const randomName = `User ${Math.floor(Math.random() * 1000)}`
-    store.connectWebSocket(workspaceId, randomName)
+    collieContent.value = store.currentWorkspace.collieContent || ''
+    store.connectWebSocket(workspaceId, `User ${Math.floor(Math.random() * 1000)}`)
   }
 })
 
-onUnmounted(() => {
-  store.disconnectWebSocket()
+onUnmounted(() => store.disconnectWebSocket())
+
+watch(() => store.currentWorkspace?.content, (v) => { if (v && v !== content.value) content.value = v })
+watch(() => store.currentWorkspace?.collieContent, (v) => { if (v !== undefined && v !== collieContent.value) collieContent.value = v })
+
+// Auto-save collieContent
+let collieSaveTimer: number | null = null
+watch(collieContent, (newVal) => {
+  if (!store.currentWorkspace || newVal === store.currentWorkspace.collieContent) return
+  if (collieSaveTimer) clearTimeout(collieSaveTimer)
+  collieSaveTimer = window.setTimeout(async () => {
+    if (!store.currentWorkspace) return
+    try {
+      await fetch(`/api/workspaces/${store.currentWorkspace.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ collieContent: newVal })
+      })
+    } catch (e) { console.error('Failed to save collie content:', e) }
+  }, 500)
 })
 
-// Watch for external content changes (from other users)
-watch(() => store.currentWorkspace?.content, (newContent) => {
-  if (newContent && newContent !== content.value) {
-    content.value = newContent
-  }
-})
-
+// ── Editor helpers ──
 const toggleTheme = () => {
   theme.value = theme.value === 'dark' ? 'light' : 'dark'
   localStorage.setItem('sheltie-theme', theme.value)
@@ -216,12 +343,9 @@ const toggleTheme = () => {
 let debounceTimer: number | null = null
 const onContentChange = () => {
   if (debounceTimer) clearTimeout(debounceTimer)
-  debounceTimer = window.setTimeout(() => {
-    store.updateContent(content.value)
-  }, 300)
+  debounceTimer = window.setTimeout(() => store.updateContent(content.value), 300)
 }
 
-// Track and broadcast cursor position
 const onCursorChange = () => {
   if (textareaRef.value) {
     const { selectionStart, selectionEnd } = textareaRef.value
@@ -229,70 +353,26 @@ const onCursorChange = () => {
   }
 }
 
-// Calculate cursor position style (approximate line/column to pixel)
 const getCursorStyle = (user: { cursorPosition: number | null; color: string }) => {
-  if (!textareaRef.value || user.cursorPosition === null) {
-    return { display: 'none' }
-  }
-
+  if (!textareaRef.value || user.cursorPosition === null) return { display: 'none' }
   const text = content.value.substring(0, user.cursorPosition)
   const lines = text.split('\n')
-  const lineIndex = lines.length - 1
-  const charIndex = lines[lineIndex].length
-
-  // Approximate positioning (assumes monospace font)
-  const lineHeight = 24 // Approximate line height
-  const charWidth = 8.4 // Approximate character width for monospace
-
-  const top = lineIndex * lineHeight + 16 // 16px padding
-  const left = charIndex * charWidth + 16
-
-  return {
-    top: `${top}px`,
-    left: `${left}px`
-  }
+  return { top: `${(lines.length - 1) * 24 + 16}px`, left: `${lines[lines.length - 1].length * 8.4 + 16}px` }
 }
 
-// Jump to specific line in editor when clicking preview slide
 const jumpToLine = (lineNumber: number) => {
-  if (!textareaRef.value || lineNumber === undefined) return
-  
+  if (!textareaRef.value) return
   const lines = content.value.split('\n')
-  let charPosition = 0
-  
-  // Calculate character position at start of target line
-  for (let i = 0; i < lineNumber && i < lines.length; i++) {
-    charPosition += lines[i].length + 1 // +1 for newline
-  }
-  
-  // Focus textarea and set cursor position
+  let pos = 0
+  for (let i = 0; i < lineNumber && i < lines.length; i++) pos += lines[i].length + 1
   textareaRef.value.focus()
-  textareaRef.value.setSelectionRange(charPosition, charPosition)
-  
-  // Scroll to the line
-  const lineHeight = 24
-  textareaRef.value.scrollTop = Math.max(0, (lineNumber - 3) * lineHeight)
-}
-
-const copyShareUrl = async () => {
-  if (!workspace.value) return
-  const url = `${window.location.origin}/workspace/${workspace.value.id}`
-  try {
-    await navigator.clipboard.writeText(url)
-    shareButtonText.value = '已複製!'
-    setTimeout(() => {
-      shareButtonText.value = '分享'
-    }, 2000)
-  } catch {
-    alert('複製失敗，請手動複製')
-  }
+  textareaRef.value.setSelectionRange(pos, pos)
+  textareaRef.value.scrollTop = Math.max(0, (lineNumber - 3) * 24)
 }
 
 const exportPPTX = () => {
   showExportMenu.value = false
-  if (content.value) {
-    exportToPPTX(content.value, workspace.value?.name || 'Sheltie Export')
-  }
+  if (content.value) exportToPPTX(content.value, workspace.value?.name || 'Sheltie')
 }
 </script>
 
@@ -303,36 +383,61 @@ const exportPPTX = () => {
   overflow: hidden;
 }
 
-.panel {
-  height: 100%;
-}
+.panel { height: 100%; }
+.editor-panel, .preview-panel { min-width: 320px; }
 
-.editor-panel,
-.preview-panel {
-  min-width: 320px;
-}
-
+/* ── Header ── */
 .panel-header {
-  gap: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: nowrap;
 }
 
 .header-left {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
+  flex-shrink: 0;
 }
 
-.header-right {
+.header-left::after {
+  content: '';
+  display: block;
+  width: 1px;
+  height: 18px;
+  background: var(--color-border);
+  margin-left: var(--spacing-xs);
+}
+
+.header-tabs {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: 2px;
+  flex: 1;
 }
 
-/* Brand Logo with gradient animation */
+/* ── htab ── */
+.htab {
+  padding: 4px 10px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.htab:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.htab.active { background: var(--color-accent); color: white; }
+
+/* ── Brand ── */
 .brand-logo {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
   font-weight: 700;
   font-size: var(--font-size-lg);
   background: linear-gradient(135deg, var(--color-accent) 0%, #a78bfa 50%, #f472b6 100%);
@@ -342,23 +447,16 @@ const exportPPTX = () => {
   background-size: 200% 200%;
   animation: gradient-shift 3s ease infinite;
   text-decoration: none;
+  white-space: nowrap;
 }
 
 @keyframes gradient-shift {
-  0%, 100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
 }
 
-/* Connection indicator */
-.connection-indicator {
-  display: flex;
-  align-items: center;
-  margin-left: var(--spacing-xs);
-}
+/* ── Connection ── */
+.connection-indicator { display: flex; align-items: center; }
 
 .indicator-dot {
   width: 8px;
@@ -373,35 +471,25 @@ const exportPPTX = () => {
   box-shadow: 0 0 8px var(--color-success-glow);
 }
 
-/* User avatars */
-.user-avatars {
-  display: flex;
-  align-items: center;
-  margin-left: var(--spacing-sm);
-}
+/* ── User avatars ── */
+.user-avatars { display: flex; align-items: center; }
 
 .user-avatar {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  margin-left: -6px;
+  font-size: 11px;
+  margin-left: -5px;
   border: 2px solid var(--color-bg-secondary);
   cursor: default;
   transition: transform var(--transition-fast);
 }
 
-.user-avatar:first-child {
-  margin-left: 0;
-}
-
-.user-avatar:hover {
-  transform: scale(1.1);
-  z-index: 10;
-}
+.user-avatar:first-child { margin-left: 0; }
+.user-avatar:hover { transform: scale(1.1); z-index: 10; }
 
 .user-avatar.more {
   background: var(--color-bg-tertiary);
@@ -410,64 +498,33 @@ const exportPPTX = () => {
   font-weight: 600;
 }
 
-.share-btn {
-  gap: var(--spacing-xs);
-}
-
-.icon {
-  font-size: var(--font-size-base);
-}
-
-/* Panel Controls */
+/* ── Panel controls ── */
 .panel-controls {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: var(--spacing-xs);
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
-/* Export Dropdown */
-.export-dropdown {
-  position: relative;
+.zoom-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  min-width: 55px;
 }
 
-.dropdown-menu {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: var(--spacing-xs);
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
-  padding: var(--spacing-xs);
-  z-index: 1000;
-  min-width: 150px;
-  display: flex;
-  flex-direction: column;
+.btn-sm-icon {
+  padding: 2px 6px !important;
+  font-size: var(--font-size-xs) !important;
 }
 
-.dropdown-item {
-  text-align: left;
-  background: transparent;
-  border: none;
-  padding: var(--spacing-sm);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-primary);
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-  transition: background var(--transition-fast);
-}
-
-.dropdown-item:hover {
-  background: var(--color-bg-hover);
-}
-
-/* Editor wrapper with cursor overlay */
+/* ── Editor containers ── */
 .editor-wrapper {
   position: relative;
   flex: 1;
   display: flex;
   flex-direction: column;
+  height: 100%;
   overflow: hidden;
 }
 
@@ -477,22 +534,24 @@ const exportPPTX = () => {
   height: 100%;
 }
 
-/* Remote cursors overlay */
+/* border-collie editor wrapper — fill the panel-content */
+.collie-editor-wrapper {
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Remote cursors */
 .cursors-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   pointer-events: none;
   overflow: hidden;
 }
 
-.remote-cursor {
-  position: absolute;
-  pointer-events: none;
-  z-index: 50;
-}
+.remote-cursor { position: absolute; pointer-events: none; z-index: 50; }
 
 .cursor-caret {
   width: 2px;
@@ -517,8 +576,35 @@ const exportPPTX = () => {
   font-weight: 500;
 }
 
-.slide-preview-container {
-  padding: var(--spacing-md);
-  overflow: auto;
+/* ── Right panel ── */
+.gantt-view-container { overflow: hidden; }
+.gantt-scroll { height: 100%; overflow: auto; }
+
+.export-dropdown { position: relative; }
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%; right: 0;
+  margin-top: var(--spacing-xs);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: var(--spacing-xs);
+  z-index: 1000;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
 }
+
+.dropdown-item {
+  text-align: left;
+  background: transparent; border: none;
+  padding: var(--spacing-sm); font-size: var(--font-size-sm);
+  color: var(--color-text-primary); cursor: pointer;
+  border-radius: var(--radius-sm); transition: background var(--transition-fast);
+}
+.dropdown-item:hover { background: var(--color-bg-hover); }
+
+.slide-preview-container { padding: var(--spacing-md); overflow: auto; }
 </style>

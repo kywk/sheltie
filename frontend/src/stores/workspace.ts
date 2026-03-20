@@ -6,6 +6,7 @@ export interface Workspace {
     name: string
     description: string
     content: string
+    collieContent: string  // BorderCollie Gantt data
     createdAt: string
     updatedAt: string
 }
@@ -154,7 +155,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
                                 console.warn('Content conflict detected, updating to server version')
                                 // Could show a toast notification here
                             }
-                            
+
                             // Always update to the server's version
                             currentWorkspace.value.content = message.content
                             documentVersion.value = message.version || 0

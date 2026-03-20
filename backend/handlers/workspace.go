@@ -11,12 +11,13 @@ import (
 
 // WorkspaceResponse represents the API response for a workspace
 type WorkspaceResponse struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Content     string    `json:"content"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	ID            string    `json:"id"`
+	Name          string    `json:"name"`
+	Description   string    `json:"description"`
+	Content       string    `json:"content"`
+	CollieContent string    `json:"collieContent"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
 }
 
 // WorkspaceListItem represents a simplified workspace for listing
@@ -38,18 +39,20 @@ func GetWorkspace(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, WorkspaceResponse{
-		ID:          ws.ID,
-		Name:        ws.Name,
-		Description: ws.Description,
-		Content:     ws.Content,
-		CreatedAt:   ws.CreatedAt,
-		UpdatedAt:   ws.UpdatedAt,
+		ID:            ws.ID,
+		Name:          ws.Name,
+		Description:   ws.Description,
+		Content:       ws.Content,
+		CollieContent: ws.CollieContent,
+		CreatedAt:     ws.CreatedAt,
+		UpdatedAt:     ws.UpdatedAt,
 	})
 }
 
 // UpdateWorkspaceRequest represents the request body for updating a workspace
 type UpdateWorkspaceRequest struct {
-	Content string `json:"content"`
+	Content       string `json:"content"`
+	CollieContent string `json:"collieContent"`
 }
 
 // UpdateWorkspace handles PUT /api/workspaces/:id
@@ -68,7 +71,14 @@ func UpdateWorkspace(c *gin.Context) {
 		return
 	}
 
-	ws.Content = req.Content
+	// Only update fields that are provided
+	if req.Content != "" {
+		ws.Content = req.Content
+	}
+	if req.CollieContent != "" {
+		ws.CollieContent = req.CollieContent
+	}
+
 	if err := database.UpdateWorkspace(ws); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update workspace"})
 		return
@@ -106,12 +116,13 @@ func CreateWorkspace(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, WorkspaceResponse{
-		ID:          ws.ID,
-		Name:        ws.Name,
-		Description: ws.Description,
-		Content:     ws.Content,
-		CreatedAt:   ws.CreatedAt,
-		UpdatedAt:   ws.UpdatedAt,
+		ID:            ws.ID,
+		Name:          ws.Name,
+		Description:   ws.Description,
+		Content:       ws.Content,
+		CollieContent: ws.CollieContent,
+		CreatedAt:     ws.CreatedAt,
+		UpdatedAt:     ws.UpdatedAt,
 	})
 }
 

@@ -11,13 +11,14 @@ import (
 
 // Workspace represents a collaborative workspace
 type Workspace struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Content     string    `json:"content"`
-	Version     int64     `json:"version"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	ID            string    `json:"id"`
+	Name          string    `json:"name"`
+	Description   string    `json:"description"`
+	Content       string    `json:"content"`
+	CollieContent string    `json:"collieContent"` // BorderCollie Gantt data
+	Version       int64     `json:"version"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
 }
 
 // WorkspaceVersion represents a version snapshot
@@ -51,6 +52,7 @@ func Init(dbPath string) error {
 		name TEXT NOT NULL,
 		description TEXT DEFAULT '',
 		content TEXT DEFAULT '',
+		collie_content TEXT DEFAULT '',
 		version INTEGER DEFAULT 0,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -74,6 +76,9 @@ func Init(dbPath string) error {
 
 	// Try to add version column for existing databases (ignore error if already exists)
 	_, _ = db.Exec("ALTER TABLE workspaces ADD COLUMN version INTEGER DEFAULT 0")
+	
+	// Add collie_content column for BorderCollie integration
+	_, _ = db.Exec("ALTER TABLE workspaces ADD COLUMN collie_content TEXT DEFAULT ''")
 
 	return nil
 }
@@ -94,8 +99,8 @@ func GetDB() *sql.DB {
 // CreateWorkspace creates a new workspace
 func CreateWorkspace(ws *Workspace) error {
 	_, err := db.Exec(
-		"INSERT INTO workspaces (id, name, description, content, version, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-		ws.ID, ws.Name, ws.Description, ws.Content, ws.Version, ws.CreatedAt, ws.UpdatedAt,
+		"INSERT INTO workspaces (id, name, description, content, collie_content, version, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		ws.ID, ws.Name, ws.Description, ws.Content, ws.CollieContent, ws.Version, ws.CreatedAt, ws.UpdatedAt,
 	)
 	return err
 }
@@ -104,9 +109,9 @@ func CreateWorkspace(ws *Workspace) error {
 func GetWorkspace(id string) (*Workspace, error) {
 	ws := &Workspace{}
 	err := db.QueryRow(
-		"SELECT id, name, description, content, version, created_at, updated_at FROM workspaces WHERE id = ?",
+		"SELECT id, name, description, content, collie_content, version, created_at, updated_at FROM workspaces WHERE id = ?",
 		id,
-	).Scan(&ws.ID, &ws.Name, &ws.Description, &ws.Content, &ws.Version, &ws.CreatedAt, &ws.UpdatedAt)
+	).Scan(&ws.ID, &ws.Name, &ws.Description, &ws.Content, &ws.CollieContent, &ws.Version, &ws.CreatedAt, &ws.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +120,7 @@ func GetWorkspace(id string) (*Workspace, error) {
 
 // GetAllWorkspaces retrieves all workspaces
 func GetAllWorkspaces() ([]*Workspace, error) {
-	rows, err := db.Query("SELECT id, name, description, content, version, created_at, updated_at FROM workspaces ORDER BY updated_at DESC")
+	rows, err := db.Query("SELECT id, name, description, content, collie_content, version, created_at, updated_at FROM workspaces ORDER BY updated_at DESC")
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +129,7 @@ func GetAllWorkspaces() ([]*Workspace, error) {
 	var workspaces []*Workspace
 	for rows.Next() {
 		ws := &Workspace{}
-		if err := rows.Scan(&ws.ID, &ws.Name, &ws.Description, &ws.Content, &ws.Version, &ws.CreatedAt, &ws.UpdatedAt); err != nil {
+		if err := rows.Scan(&ws.ID, &ws.Name, &ws.Description, &ws.Content, &ws.CollieContent, &ws.Version, &ws.CreatedAt, &ws.UpdatedAt); err != nil {
 			return nil, err
 		}
 		workspaces = append(workspaces, ws)
@@ -136,8 +141,8 @@ func GetAllWorkspaces() ([]*Workspace, error) {
 func UpdateWorkspace(ws *Workspace) error {
 	ws.UpdatedAt = time.Now()
 	_, err := db.Exec(
-		"UPDATE workspaces SET name = ?, description = ?, content = ?, version = ?, updated_at = ? WHERE id = ?",
-		ws.Name, ws.Description, ws.Content, ws.Version, ws.UpdatedAt, ws.ID,
+		"UPDATE workspaces SET name = ?, description = ?, content = ?, collie_content = ?, version = ?, updated_at = ? WHERE id = ?",
+		ws.Name, ws.Description, ws.Content, ws.CollieContent, ws.Version, ws.UpdatedAt, ws.ID,
 	)
 	return err
 }
