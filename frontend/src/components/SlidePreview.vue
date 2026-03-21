@@ -174,7 +174,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { parseMarkdown, generateSlides, type Slide } from '@/utils/parser'
+import { parseMarkdown, generateSlides, mergeColliePhases, type Slide } from '@/utils/parser'
+import { parseText, normalizeDate } from '../../../border-collie/src/shared/parser'
 import { getStatusClass, getStatusIcon } from '@/utils/status'
 import { 
   getPhaseStyle, 
@@ -186,6 +187,7 @@ import {
 
 const props = defineProps<{
   content: string
+  collieContent?: string
 }>()
 
 defineEmits<{
@@ -195,7 +197,11 @@ defineEmits<{
 const slides = computed<Slide[]>(() => {
   if (!props.content.trim()) return []
   try {
-    const projects = parseMarkdown(props.content)
+    let projects = parseMarkdown(props.content)
+    if (props.collieContent?.trim()) {
+      const collieProjects = parseText(props.collieContent)
+      projects = mergeColliePhases(projects, collieProjects, normalizeDate)
+    }
     return generateSlides(projects)
   } catch (e) {
     console.error('Parse error:', e)

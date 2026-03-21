@@ -360,3 +360,39 @@ export function getTodayString(): string {
     const now = new Date()
     return now.toISOString().split('T')[0]
 }
+
+// Merge collie project phases into sheltie projects (collie phases take priority)
+// collieProjects: parsed from border-collie's parseText()
+export function mergeColliePhases(
+    projects: Project[],
+    collieProjects: Array<{ name: string; phases: Array<{ name: string; startDate: string | null; endDate: string }> }>,
+    normalizeDateFn: (date: string, isEnd: boolean) => string
+): Project[] {
+    if (!collieProjects.length) return projects
+
+    const collieMap = new Map(collieProjects.map(p => [p.name, p]))
+
+    return projects.map(project => {
+        const collie = collieMap.get(project.name)
+        if (!collie || collie.phases.length === 0) return project
+
+        const phases: Phase[] = []
+        let prevEnd = ''
+        for (const cp of collie.phases) {
+            const startDate = cp.startDate === null
+                ? prevEnd ? addOneDay(prevEnd) : ''
+                : normalizeDateFn(cp.startDate, false)
+            const endDate = normalizeDateFn(cp.endDate, true)
+            phases.push({ name: cp.name, startDate, endDate })
+            prevEnd = endDate
+        }
+
+        return { ...project, phases }
+    })
+}
+
+function addOneDay(dateStr: string): string {
+    const d = new Date(dateStr)
+    d.setDate(d.getDate() + 1)
+    return d.toISOString().split('T')[0]
+}

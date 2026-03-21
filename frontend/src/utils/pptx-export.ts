@@ -1,10 +1,15 @@
-import { parseMarkdown, sortProjects, type Phase } from './parser'
+import { parseMarkdown, sortProjects, mergeColliePhases, type Phase } from './parser'
+import { parseText, normalizeDate } from '../../../border-collie/src/shared/parser'
 import { getStatusIcon } from './status'
 import { PHASE_COLORS } from './timeline'
 
 // Lazy load pptxgenjs to avoid large initial bundle
-export async function exportToPPTX(content: string, title: string = 'Sheltie Export') {
-    const projects = sortProjects(parseMarkdown(content))
+export async function exportToPPTX(content: string, title: string = 'Sheltie Export', collieContent: string = '') {
+    let parsed = parseMarkdown(content)
+    if (collieContent.trim()) {
+        parsed = mergeColliePhases(parsed, parseText(collieContent), normalizeDate)
+    }
+    const projects = sortProjects(parsed)
     if (projects.length === 0) {
         alert('沒有可匯出的專案')
         return

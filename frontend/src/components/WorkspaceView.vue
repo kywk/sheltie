@@ -143,7 +143,7 @@
             :class="rightTab === 'slides' ? 'slide-preview-container' : 'gantt-view-container'"
             @click="showExportMenu = false"
           >
-            <SlidePreview v-if="rightTab === 'slides'" :content="content" @jumpToLine="jumpToLine" />
+            <SlidePreview v-if="rightTab === 'slides'" :content="content" :collie-content="collieContent" @jumpToLine="jumpToLine" />
 
             <div v-else-if="rightTab === 'gantt-project'" class="gantt-scroll">
               <ProjectGantt
@@ -308,7 +308,7 @@ const jumpToLine = (lineNumber: number) => {
 
 const exportPPTX = () => {
   showExportMenu.value = false
-  if (content.value) exportToPPTX(content.value, workspace.value?.name || 'Sheltie')
+  if (content.value) exportToPPTX(content.value, workspace.value?.name || 'Sheltie', collieContent.value)
 }
 </script>
 

@@ -412,10 +412,29 @@ body {
   font-weight: 600;
   color: var(--color-text-secondary);
   background: var(--color-bg-tertiary);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .data-table tr:hover td {
   background: var(--color-bg-hover);
+}
+
+.data-table input {
+  width: 100%;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  background: var(--color-bg-primary);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.data-table input:focus {
+  border-color: var(--color-border-focus);
 }
 
 /* Card Grid */

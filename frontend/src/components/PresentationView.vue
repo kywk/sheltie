@@ -187,7 +187,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { parseMarkdown, generateSlides, type Slide } from '@/utils/parser'
+import { parseMarkdown, generateSlides, mergeColliePhases, type Slide } from '@/utils/parser'
+import { parseText, normalizeDate } from '../../../border-collie/src/shared/parser'
 import { exportToPPTX } from '@/utils/pptx-export'
 import { getStatusIcon } from '@/utils/status'
 import { 
@@ -204,6 +205,7 @@ const containerRef = ref<HTMLElement | null>(null)
 const workspaceId = computed(() => route.params.id as string)
 const workspaceName = ref('Sheltie')
 const content = ref('')
+const collieContentRef = ref('')
 const slides = ref<Slide[]>([])
 const currentSlide = ref(0)
 const isFullscreen = ref(false)
@@ -227,9 +229,11 @@ onMounted(async () => {
       const workspace = await response.json()
       workspaceName.value = workspace.name
       content.value = workspace.content
+      collieContentRef.value = workspace.collieContent || ''
       
       const projects = parseMarkdown(workspace.content)
-      slides.value = generateSlides(projects)
+      const collieProjects = collieContentRef.value ? parseText(collieContentRef.value) : []
+      slides.value = generateSlides(mergeColliePhases(projects, collieProjects, normalizeDate))
     }
   } catch (e) {
     console.error('Failed to fetch workspace:', e)
@@ -323,7 +327,7 @@ const getSummaryIndex = () => {
 
 const exportPPTX = () => {
   if (content.value) {
-    exportToPPTX(content.value, workspaceName.value)
+    exportToPPTX(content.value, workspaceName.value, collieContentRef.value)
   }
 }
 
