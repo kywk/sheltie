@@ -44,6 +44,7 @@ export interface NoteLine {
     text: string
     isTracking: boolean  // _待追蹤_ 開頭
     isPlanned: boolean   // _預計_ 開頭
+    children?: NoteLine[]
 }
 
 export interface Slide {
@@ -134,6 +135,17 @@ function parseProjectSection(section: string, lineOffset: number = 0): Project |
                     isPlanned: content.startsWith('_預計_')
                 }
                 project.notes.push(noteLine)
+            } else if (line.match(/^[\s\t]+[\*\-]\s+/)) {
+                const content = line.trim().replace(/^[\*\-]\s+/, '').trim()
+                if (content && project.notes.length > 0) {
+                    const parent = project.notes[project.notes.length - 1]
+                    if (!parent.children) parent.children = []
+                    parent.children.push({
+                        text: content,
+                        isTracking: content.startsWith('_待追蹤_'),
+                        isPlanned: content.startsWith('_預計_')
+                    })
+                }
             }
         }
     }
@@ -235,14 +247,23 @@ function parseMeeting(
 ) {
     const trimmed = line.trim()
 
-    // Date line: - YYYY-MM-DD (must be exactly a date, nothing else)
-    const dateMatch = trimmed.match(/^[\*\-]\s*(\d{4}-\d{2}-\d{2})$/)
+    // Date line: - YYYY-MM-DD (optionally followed by inline content)
+    const dateMatch = trimmed.match(/^[\*\-]\s*(\d{4}-\d{2}-\d{2})(.*)$/)
     if (dateMatch) {
         const date = dateMatch[1]
         const entry: MeetingEntry = {
             date,
             lines: [],
             isOld: isOverOneMonth(date)
+        }
+        // Inline content after date
+        const inlineContent = dateMatch[2].trim()
+        if (inlineContent) {
+            entry.lines.push({
+                text: inlineContent,
+                isTracking: inlineContent.startsWith('_待追蹤_'),
+                isPlanned: inlineContent.startsWith('_預計_')
+            })
         }
         project.meetings.push(entry)
         setCurrentMeeting(entry)

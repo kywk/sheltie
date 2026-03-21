@@ -33,17 +33,13 @@
                 </div>
               </div>
             </div>
-            <!-- 編輯 tabs -->
-            <div class="header-tabs">
-              <button class="htab" :class="{ active: leftTab === 'progress' }" @click="leftTab = 'progress'">
-                📝 專案進度
-              </button>
-              <button class="htab" :class="{ active: leftTab === 'gantt-text' }" @click="leftTab = 'gantt-text'">
-                ✏️ 人力配置
-              </button>
-              <button class="htab" :class="{ active: leftTab === 'gantt-table' }" @click="leftTab = 'gantt-table'">
-                📋 人力表格
-              </button>
+            <!-- 編輯模式選擇 -->
+            <div class="editor-mode-dropdown">
+              <select v-model="leftTab">
+                <option value="progress">📝 專案進度</option>
+                <option value="gantt-text">✏️ 人力配置</option>
+                <option value="gantt-table">📋 人力表格</option>
+              </select>
             </div>
           </div>
 
@@ -350,6 +346,27 @@ const exportPPTX = () => {
   margin-left: var(--spacing-xs);
 }
 
+/* ── Editor mode dropdown ── */
+.editor-mode-dropdown {
+  margin-left: auto;
+}
+
+.editor-mode-dropdown select {
+  padding: 4px 8px;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  outline: none;
+}
+
+.editor-mode-dropdown select:focus {
+  border-color: var(--color-border-focus);
+}
+
+/* ── htab (right panel tabs) ── */
 .header-tabs {
   display: flex;
   align-items: center;
@@ -357,7 +374,6 @@ const exportPPTX = () => {
   flex: 1;
 }
 
-/* ── htab ── */
 .htab {
   padding: 4px 10px;
   background: transparent;

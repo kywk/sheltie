@@ -149,6 +149,15 @@
                     :class="{ tracking: note.isTracking, planned: note.isPlanned }"
                   >
                     {{ note.text }}
+                    <ul v-if="note.children?.length">
+                      <li
+                        v-for="(child, j) in note.children"
+                        :key="j"
+                        :class="{ tracking: child.isTracking, planned: child.isPlanned }"
+                      >
+                        {{ child.text }}
+                      </li>
+                    </ul>
                   </li>
                 </ul>
               </div>
@@ -715,6 +724,10 @@ const shouldUseTwoRows = (departments: { 承辦: string[], 協辦: string[] } | 
   margin: 0;
   padding-left: 1.25rem;
   list-style-type: disc;
+}
+
+.other-notes-column li ul {
+  margin-top: 0.35rem;
 }
 
 .other-notes-column li {
