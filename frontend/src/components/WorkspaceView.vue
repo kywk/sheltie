@@ -186,9 +186,10 @@ import ProjectGantt from '../../../border-collie/src/components/ProjectGantt.vue
 import PersonGantt from '../../../border-collie/src/components/PersonGantt.vue'
 import BCTextEditor from '../../../border-collie/src/components/TextEditor.vue'
 import BCTableEditor from '../../../border-collie/src/components/TableEditor.vue'
-import { parseText, normalizeDate, serializeToText } from '../../../border-collie/src/shared/parser'
+import { parseText, serializeToText } from '../../../border-collie/src/shared/parser'
+import { useGanttData } from '../../../border-collie/src/shared/composables/useGanttData'
 import type {
-  Project, ComputedPhase, PersonAssignment, GanttScale, TimeRange
+  Project, GanttScale
 } from '../../../border-collie/src/shared/types'
 import { exportToPPTX } from '@/utils/pptx-export'
 
@@ -217,74 +218,13 @@ const otherUsers  = computed(() => store.otherUsers)
 const userCount   = computed(() => store.userCount)
 const remoteCursors = computed(() => store.otherUsers.filter(u => u.cursorPosition !== null))
 
-// ── Gantt Computation ──
+// ── Gantt Computation (via border-collie shared composable) ──
 const ganttProjects = computed<Project[]>(() => {
   try { return parseText(collieContent.value) }
   catch { return [] }
 })
 
-const computedPhases = computed<ComputedPhase[]>(() => {
-  const result: ComputedPhase[] = []
-  ganttProjects.value.forEach((project, projectIndex) => {
-    let prevEndDate: string | null = null
-    project.phases.forEach(phase => {
-      const startDate = phase.startDate || prevEndDate || new Date().toISOString().slice(0, 7)
-      result.push({
-        projectName: project.name,
-        projectIndex,
-        name: phase.name,
-        startDate,
-        endDate: phase.endDate,
-        assignments: phase.assignments,
-        isContinuation: phase.startDate === null
-      })
-      prevEndDate = phase.endDate
-    })
-  })
-  return result
-})
-
-const personAssignments = computed<PersonAssignment[]>(() => {
-  const result: PersonAssignment[] = []
-  computedPhases.value.forEach(phase => {
-    phase.assignments.forEach(a => {
-      result.push({
-        person: a.name,
-        projectName: phase.projectName,
-        projectIndex: phase.projectIndex,
-        phaseName: phase.name,
-        startDate: phase.startDate,
-        endDate: phase.endDate,
-        percentage: a.percentage,
-        isContinuation: phase.isContinuation
-      })
-    })
-  })
-  return result
-})
-
-const allPersons = computed<string[]>(() => {
-  const s = new Set<string>()
-  personAssignments.value.forEach(a => s.add(a.person))
-  return Array.from(s).sort()
-})
-
-const ganttTimeRange = computed<TimeRange>(() => {
-  if (computedPhases.value.length === 0) {
-    const now = new Date()
-    return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: new Date(now.getFullYear(), now.getMonth() + 12, 0) }
-  }
-  let min = new Date('2099-12-31'), max = new Date('2000-01-01')
-  computedPhases.value.forEach(p => {
-    const s = new Date(normalizeDate(p.startDate))
-    const e = new Date(normalizeDate(p.endDate, true))
-    if (s < min) min = s
-    if (e > max) max = e
-  })
-  min.setMonth(min.getMonth() - 1)
-  max.setMonth(max.getMonth() + 1)
-  return { start: min, end: max }
-})
+const { computedPhases, personAssignments, allPersons, timeRange: ganttTimeRange } = useGanttData(ganttProjects)
 
 // ── Zoom ──
 const zoomIn  = () => ganttScale.value = { ...ganttScale.value, monthWidth: Math.min(200, ganttScale.value.monthWidth + 20) }
