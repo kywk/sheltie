@@ -22,7 +22,7 @@
     </div>
 
     <!-- Slide Content -->
-    <div class="slide-container" @click="nextSlide">
+    <div v-if="!overviewMode" class="slide-container" @click="nextSlide">
       <div v-if="slides.length === 0" class="empty-slides">
         <p>尚無投影片</p>
       </div>
@@ -167,6 +167,31 @@
       </template>
     </div>
 
+    <!-- Overview Mode -->
+    <div v-if="overviewMode" class="overview-container">
+      <div class="overview-grid" ref="overviewGridRef">
+        <div
+          v-for="(slide, i) in slides"
+          :key="i"
+          class="overview-thumb"
+          :class="{ active: i === currentSlide }"
+          @click.stop="selectSlide(i)"
+        >
+          <div class="thumb-number">{{ i + 1 }}</div>
+          <div class="thumb-content">
+            <template v-if="slide.type === 'summary'">
+              <div class="thumb-title">📊 專案進展彙整</div>
+              <div class="thumb-detail">{{ slide.projects?.length || 0 }} 個專案</div>
+            </template>
+            <template v-else-if="slide.type === 'project'">
+              <div class="thumb-title">{{ getStatusIcon(slide.project?.status) }} {{ slide.project?.name }}</div>
+              <div class="thumb-detail">{{ slide.project?.currentState }} · {{ slide.project?.progress }}%</div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Navigation -->
     <div class="slide-nav">
       <button class="nav-btn prev" @click.stop="prevSlide" :disabled="currentSlide === 0">
@@ -185,7 +210,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { parseMarkdown, generateSlides, mergeColliePhases, type Slide } from '@/utils/parser'
 import { parseText, normalizeDate } from '../../../border-collie/src/shared/parser'
@@ -194,13 +219,14 @@ import { getStatusIcon } from '@/utils/status'
 import { 
   getPhaseStyle, 
   getPhaseArrowStyle, 
-  formatPhaseDate, 
+  formatPhaseDate,
   showTodayPin, 
   getTodayPinStyle 
 } from '@/utils/timeline'
 
 const route = useRoute()
 const containerRef = ref<HTMLElement | null>(null)
+const overviewGridRef = ref<HTMLElement | null>(null)
 
 const workspaceId = computed(() => route.params.id as string)
 const workspaceName = ref('Sheltie')
@@ -210,6 +236,7 @@ const slides = ref<Slide[]>([])
 const currentSlide = ref(0)
 const isFullscreen = ref(false)
 const toolbarHidden = ref(false)
+const overviewMode = ref(false)
 
 // Auto-hide toolbar
 let toolbarTimeout: number | null = null
@@ -265,7 +292,46 @@ const showToolbar = () => {
   }, 3000)
 }
 
+const getOverviewColumns = (): number => {
+  const grid = overviewGridRef.value
+  if (!grid) return 1
+  return getComputedStyle(grid).gridTemplateColumns.split(' ').length
+}
+
 const handleKeydown = (e: KeyboardEvent) => {
+  if (overviewMode.value) {
+    const total = slides.value.length
+    const cols = getOverviewColumns()
+    let next = currentSlide.value
+    switch (e.key) {
+      case 'ArrowRight': next = Math.min(next + 1, total - 1); break
+      case 'ArrowLeft': next = Math.max(next - 1, 0); break
+      case 'ArrowDown': next = Math.min(next + cols, total - 1); break
+      case 'ArrowUp': next = Math.max(next - cols, 0); break
+      case 'Enter':
+      case ' ':
+        overviewMode.value = false
+        e.preventDefault()
+        return
+      case 'z':
+      case 'Z':
+        overviewMode.value = false
+        e.preventDefault()
+        return
+      case 'Escape':
+        if (isFullscreen.value) document.exitFullscreen()
+        window.history.back()
+        return
+      default: return
+    }
+    currentSlide.value = next
+    e.preventDefault()
+    nextTick(() => {
+      overviewGridRef.value?.children[next]?.scrollIntoView({ block: 'nearest' })
+    })
+    return
+  }
+
   switch (e.key) {
     case 'ArrowRight':
     case 'ArrowDown':
@@ -290,6 +356,11 @@ const handleKeydown = (e: KeyboardEvent) => {
     case 'F':
       toggleFullscreen()
       break
+    case 'z':
+    case 'Z':
+      overviewMode.value = !overviewMode.value
+      e.preventDefault()
+      break
   }
 }
 
@@ -303,6 +374,11 @@ const prevSlide = () => {
   if (currentSlide.value > 0) {
     currentSlide.value--
   }
+}
+
+const selectSlide = (index: number) => {
+  currentSlide.value = index
+  overviewMode.value = false
 }
 
 const toggleFullscreen = () => {
@@ -673,6 +749,7 @@ const shouldUseTwoRows = (departments: { 承辦: string[], 協辦: string[] } | 
   font-size: 1rem;
   opacity: 0.9;
   font-weight: 400;
+  white-space: nowrap;
 }
 
 /* Phase colors are now applied via inline styles for dynamic phase support */
@@ -770,6 +847,7 @@ const shouldUseTwoRows = (departments: { 承辦: string[], 協辦: string[] } | 
   font-weight: 500;
   font-size: 0.9rem;
   margin-top: 0.15rem;
+  white-space: nowrap;
 }
 
 .meeting-lines {
@@ -854,8 +932,83 @@ const shouldUseTwoRows = (departments: { 承辦: string[], 協辦: string[] } | 
   text-align: center;
 }
 
-/* Button overrides */
-.btn-ghost {
+/* Overview Mode */
+.overview-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4rem 2rem 2rem;
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.25rem;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.overview-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid transparent;
+  border-radius: 10px;
+  padding: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.overview-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.overview-thumb.active {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.thumb-number {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.overview-thumb.active .thumb-number {
+  background: #3b82f6;
+  color: white;
+}
+
+.thumb-content {
+  min-width: 0;
+}
+
+.thumb-title {
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.thumb-detail {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+}
+
+/* Button overrides */.btn-ghost {
   color: white;
   background: transparent;
   border: none;

@@ -180,7 +180,7 @@ import { getStatusClass, getStatusIcon } from '@/utils/status'
 import { 
   getPhaseStyle, 
   getPhaseArrowStyle, 
-  formatPhaseDate, 
+  formatPhaseDate,
   showTodayPin, 
   getTodayPinStyle 
 } from '@/utils/timeline'
@@ -479,6 +479,7 @@ const shouldUseTwoRows = (departments: { 承辦: string[], 協辦: string[] } | 
   font-size: 9px;
   opacity: 0.9;
   font-weight: 400;
+  white-space: nowrap;
 }
 
 /* Phase colors are now applied via inline styles for dynamic phase support */

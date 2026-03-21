@@ -85,7 +85,7 @@
             <!-- 📋 人力表格 (border-collie TableEditor) -->
             <div v-show="leftTab === 'gantt-table'" class="collie-editor-wrapper">
               <BCTableEditor
-                :projects="ganttProjects"
+                :projects="collieProjects"
                 @update:projects="onTableUpdateProjects"
               />
             </div>
@@ -152,7 +152,7 @@
             <div v-else-if="rightTab === 'gantt-project'" class="gantt-scroll">
               <ProjectGantt
                 :computed-phases="computedPhases"
-                :projects="ganttProjects"
+                :projects="collieProjects"
                 :scale="ganttScale"
                 :bar-style="barStyle"
                 :time-range="ganttTimeRange"
@@ -177,7 +177,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, shallowRef, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useWorkspaceStore } from '@/stores/workspace'
 import SplitPane from './SplitPane.vue'
@@ -207,6 +207,23 @@ const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const content = ref('')
 const collieContent = ref('')
 
+// ── Collie Projects (shared source for TextEditor ↔ TableEditor) ──
+const collieProjects = shallowRef<Project[]>([])
+let collieUpdateSource: 'text' | 'table' | 'init' = 'init'
+
+// Text → Projects sync
+watch(collieContent, (text) => {
+  if (collieUpdateSource === 'table') { collieUpdateSource = 'init'; return }
+  try { collieProjects.value = parseText(text) } catch { /* ignore parse errors */ }
+})
+
+// Table → Text sync
+function onTableUpdateProjects(updated: Project[]) {
+  collieUpdateSource = 'table'
+  collieProjects.value = updated
+  collieContent.value = serializeToText(updated)
+}
+
 // ── Gantt UI State ──
 const barStyle = ref<'block' | 'arrow'>('block')
 const ganttScale = ref<GanttScale>({ monthWidth: 80, rowHeight: 40 })
@@ -219,12 +236,7 @@ const userCount   = computed(() => store.userCount)
 const remoteCursors = computed(() => store.otherUsers.filter(u => u.cursorPosition !== null))
 
 // ── Gantt Computation (via border-collie shared composable) ──
-const ganttProjects = computed<Project[]>(() => {
-  try { return parseText(collieContent.value) }
-  catch { return [] }
-})
-
-const ganttData = useGanttData(ganttProjects as any)
+const ganttData = useGanttData(collieProjects as any)
 const computedPhases = computed(() => ganttData.computedPhases.value)
 const personAssignments = computed(() => ganttData.personAssignments.value)
 const allPersons = computed(() => ganttData.allPersons.value)
@@ -233,11 +245,6 @@ const ganttTimeRange = computed(() => ganttData.timeRange.value)
 // ── Zoom ──
 const zoomIn  = () => ganttScale.value = { ...ganttScale.value, monthWidth: Math.min(200, ganttScale.value.monthWidth + 20) }
 const zoomOut = () => ganttScale.value = { ...ganttScale.value, monthWidth: Math.max(40, ganttScale.value.monthWidth - 20) }
-
-// ── Table callback ──
-function onTableUpdateProjects(updated: Project[]) {
-  collieContent.value = serializeToText(updated)
-}
 
 // ── Lifecycle & Sync ──
 onMounted(async () => {
@@ -336,6 +343,13 @@ const exportPPTX = () => {
   align-items: center;
   gap: var(--spacing-sm);
   flex-wrap: nowrap;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.panel-header .btn {
+  padding: 6px 12px;
+  font-size: var(--font-size-sm);
 }
 
 .header-left {
@@ -370,7 +384,7 @@ const exportPPTX = () => {
 }
 
 .htab {
-  padding: 4px 10px;
+  padding: 6px 12px;
   background: transparent;
   border: none;
   color: var(--color-text-secondary);
