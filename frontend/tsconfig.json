@@ -20,15 +20,34 @@
         "noUnusedParameters": true,
         "noFallthroughCasesInSwitch": true,
         "paths": {
-            "@/*": [
-                "./src/*"
-            ]
+            "@/stores/projectStore": ["../border-collie/src/stores/projectStore"],
+            "@/composables/useGanttScale": ["../border-collie/src/composables/useGanttScale"],
+            "@/shared/composables/useGanttScale": ["../border-collie/src/shared/composables/useGanttScale"],
+            "@/shared/types": ["../border-collie/src/shared/types"],
+            "@/shared/parser/serializer": ["../border-collie/src/shared/parser/serializer"],
+            "@/shared/parser/frontmatterParser": ["../border-collie/src/shared/parser/frontmatterParser"],
+            "@/shared/parser/textParser": ["../border-collie/src/shared/parser/textParser"],
+            "@/parser/textParser": ["../border-collie/src/parser/textParser"],
+            "@/parser/serializer": ["../border-collie/src/parser/serializer"],
+            "@/parser/frontmatterParser": ["../border-collie/src/parser/frontmatterParser"],
+            "@/types": ["../border-collie/src/types"],
+            "@/stores/workspaceStore": ["../border-collie/src/stores/workspaceStore"],
+            "@/utils/sharing": ["../border-collie/src/utils/sharing"],
+            "@/utils/gist": ["../border-collie/src/utils/gist"],
+            "@/utils/urlSource": ["../border-collie/src/utils/urlSource"],
+            "@/utils/exporter": ["../border-collie/src/utils/exporter"],
+            "@/*": ["./src/*"]
         }
     },
     "include": [
         "src/**/*.ts",
         "src/**/*.tsx",
-        "src/**/*.vue"
+        "src/**/*.vue",
+        "../border-collie/src/**/*.ts",
+        "../border-collie/src/**/*.vue"
+    ],
+    "exclude": [
+        "../border-collie/src/**/*.test.ts"
     ],
     "references": [
         {

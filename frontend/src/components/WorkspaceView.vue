@@ -34,12 +34,16 @@
               </div>
             </div>
             <!-- 編輯模式選擇 -->
-            <div class="editor-mode-dropdown">
-              <select v-model="leftTab">
-                <option value="progress">📝 專案進度</option>
-                <option value="gantt-text">✏️ 人力配置</option>
-                <option value="gantt-table">📋 人力表格</option>
-              </select>
+            <div class="editor-mode-tabs">
+              <button class="htab" :class="{ active: leftTab === 'progress' }" @click="leftTab = 'progress'">
+                📝 專案進度
+              </button>
+              <button class="htab" :class="{ active: leftTab === 'gantt-text' }" @click="leftTab = 'gantt-text'">
+                ✏️ 人力配置
+              </button>
+              <button class="htab" :class="{ active: leftTab === 'gantt-table' }" @click="leftTab = 'gantt-table'">
+                📋 人力表格
+              </button>
             </div>
           </div>
 
@@ -220,7 +224,11 @@ const ganttProjects = computed<Project[]>(() => {
   catch { return [] }
 })
 
-const { computedPhases, personAssignments, allPersons, timeRange: ganttTimeRange } = useGanttData(ganttProjects)
+const ganttData = useGanttData(ganttProjects as any)
+const computedPhases = computed(() => ganttData.computedPhases.value)
+const personAssignments = computed(() => ganttData.personAssignments.value)
+const allPersons = computed(() => ganttData.allPersons.value)
+const ganttTimeRange = computed(() => ganttData.timeRange.value)
 
 // ── Zoom ──
 const zoomIn  = () => ganttScale.value = { ...ganttScale.value, monthWidth: Math.min(200, ganttScale.value.monthWidth + 20) }
@@ -346,24 +354,11 @@ const exportPPTX = () => {
   margin-left: var(--spacing-xs);
 }
 
-/* ── Editor mode dropdown ── */
-.editor-mode-dropdown {
+/* ── Editor mode tabs ── */
+.editor-mode-tabs {
   margin-left: auto;
-}
-
-.editor-mode-dropdown select {
-  padding: 4px 8px;
-  background: var(--color-bg-primary);
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
-  cursor: pointer;
-  outline: none;
-}
-
-.editor-mode-dropdown select:focus {
-  border-color: var(--color-border-focus);
+  display: flex;
+  gap: 2px;
 }
 
 /* ── htab (right panel tabs) ── */

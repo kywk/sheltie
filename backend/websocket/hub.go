@@ -328,16 +328,6 @@ func (h *Hub) autoSave() {
 	}
 }
 
-// GetClientCount returns the number of clients in a workspace
-func (h *Hub) GetClientCount(workspaceID string) int {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-	if room, ok := h.Rooms[workspaceID]; ok {
-		return len(room)
-	}
-	return 0
-}
-
 // GetVersionManager returns the version manager
 func (h *Hub) GetVersionManager() *VersionManager {
 	return h.versionManager

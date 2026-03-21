@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
-export interface Workspace {
+interface Workspace {
     id: string
     name: string
     description: string
@@ -19,7 +19,7 @@ export interface WorkspaceListItem {
 }
 
 // User presence with cursor position
-export interface UserPresence {
+interface UserPresence {
     id: string
     username: string
     color: string
@@ -46,7 +46,6 @@ const USER_ICONS = ['🐕', '🐈', '🐇', '🦊', '🐻', '🐼', '🦁', '�
 
 export const useWorkspaceStore = defineStore('workspace', () => {
     const currentWorkspace = ref<Workspace | null>(null)
-    const workspaceList = ref<WorkspaceListItem[]>([])
     const isLoading = ref(false)
     const error = ref<string | null>(null)
 
@@ -97,19 +96,6 @@ export const useWorkspaceStore = defineStore('workspace', () => {
             error.value = e instanceof Error ? e.message : 'Failed to fetch workspace'
         } finally {
             isLoading.value = false
-        }
-    }
-
-    const saveWorkspace = async () => {
-        if (!currentWorkspace.value) return
-        try {
-            await fetch(`/api/workspaces/${currentWorkspace.value.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: currentWorkspace.value.content })
-            })
-        } catch (e) {
-            console.error('Failed to save workspace:', e)
         }
     }
 
@@ -274,9 +260,6 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
     return {
         currentWorkspace,
-        workspaceList,
-        isLoading,
-        error,
         isConnected,
         users,
         otherUsers,
@@ -286,10 +269,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         documentVersion,
         documentHash,
         pendingChanges,
-        getUserColor,
         getUserIcon,
         fetchWorkspace,
-        saveWorkspace,
         connectWebSocket,
         disconnectWebSocket,
         updateContent,

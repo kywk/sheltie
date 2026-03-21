@@ -26,6 +26,10 @@ frontend/node_modules/
 frontend/dist/
 frontend/.vite/
 frontend/*.local
+frontend/vite.config.js
+frontend/vite.config.d.ts
+frontend/tsconfig.tsbuildinfo
+frontend/tsconfig.node.tsbuildinfo
 
 # Logs
 frontend/npm-debug.log*

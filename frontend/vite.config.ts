@@ -10,12 +10,16 @@ export default defineConfig({
     resolve: {
         alias: [
             // Border-collie internal @/ imports — must come before the general @ alias
-            // These specific modules are only used inside border-collie components
+            { find: /^@\/shared\/(.*)$/, replacement: `${borderCollieRoot}/shared/$1` },
             { find: '@/stores/projectStore', replacement: `${borderCollieRoot}/stores/projectStore` },
+            { find: '@/stores/workspaceStore', replacement: `${borderCollieRoot}/stores/workspaceStore` },
             { find: '@/composables/useGanttScale', replacement: `${borderCollieRoot}/composables/useGanttScale` },
-            { find: '@/shared/composables/useGanttScale', replacement: `${borderCollieRoot}/shared/composables/useGanttScale` },
-            { find: '@/parser/textParser', replacement: `${borderCollieRoot}/parser/textParser` },
+            { find: /^@\/parser\/(.*)$/, replacement: `${borderCollieRoot}/parser/$1` },
             { find: /^@\/types(.*)$/, replacement: `${borderCollieRoot}/types$1` },
+            { find: '@/utils/sharing', replacement: `${borderCollieRoot}/utils/sharing` },
+            { find: '@/utils/gist', replacement: `${borderCollieRoot}/utils/gist` },
+            { find: '@/utils/urlSource', replacement: `${borderCollieRoot}/utils/urlSource` },
+            { find: '@/utils/exporter', replacement: `${borderCollieRoot}/utils/exporter` },
             // Default: @/ resolves to frontend/src/ for all other imports
             { find: '@', replacement: frontendSrc }
         ]

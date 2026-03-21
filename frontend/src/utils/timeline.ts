@@ -16,7 +16,7 @@ export const PHASE_COLORS = [
 ] as const
 
 // Get phase color by index (cycles through 7 colors)
-export function getPhaseColors(index: number) {
+function getPhaseColors(index: number) {
     return PHASE_COLORS[index % PHASE_COLORS.length]
 }
 

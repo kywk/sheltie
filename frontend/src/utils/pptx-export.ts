@@ -212,7 +212,7 @@ export async function exportToPPTX(content: string, title: string = 'Sheltie Exp
         })
 
         // === Departments Row ===
-        const hostDepts = project.departments?.主辦?.join(', ') || '-'
+        const hostDepts = project.departments?.承辦?.join(', ') || '-'
         const partnerDepts = project.departments?.協辦?.join(', ') || '-'
         slide.addText([
             { text: '主辦：', options: { color: colors.muted, bold: true } },

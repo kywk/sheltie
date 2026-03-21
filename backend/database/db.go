@@ -21,14 +21,6 @@ type Workspace struct {
 	UpdatedAt     time.Time `json:"updatedAt"`
 }
 
-// WorkspaceVersion represents a version snapshot
-type WorkspaceVersion struct {
-	ID          int64     `json:"id"`
-	WorkspaceID string    `json:"workspaceId"`
-	Content     string    `json:"content"`
-	CreatedAt   time.Time `json:"createdAt"`
-}
-
 var db *sql.DB
 
 // Init initializes the database connection and creates tables
@@ -89,11 +81,6 @@ func Close() error {
 		return db.Close()
 	}
 	return nil
-}
-
-// GetDB returns the database instance
-func GetDB() *sql.DB {
-	return db
 }
 
 // CreateWorkspace creates a new workspace
@@ -180,11 +167,4 @@ func DeleteWorkspace(id string) error {
 	return err
 }
 
-// SaveVersion saves a version snapshot
-func SaveVersion(workspaceID, content string) error {
-	_, err := db.Exec(
-		"INSERT INTO workspace_versions (workspace_id, content, created_at) VALUES (?, ?, ?)",
-		workspaceID, content, time.Now(),
-	)
-	return err
-}
+
