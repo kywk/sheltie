@@ -1,6 +1,6 @@
 services:
   sheltie:
-    build: .
+    image: ${SHELTIE_IMAGE:-sheltie:latest}
     container_name: sheltie
     ports:
       - "8080:8080"
@@ -18,21 +18,3 @@ services:
       timeout: 3s
       retries: 3
       start_period: 10s
-
-# Optional: For development with live reload
-# Uncomment the following section for development
-#
-# services:
-#   sheltie-dev:
-#     build:
-#       context: .
-#       dockerfile: Dockerfile.dev
-#     ports:
-#       - "8080:8080"
-#       - "5173:5173"
-#     volumes:
-#       - ./backend:/app/backend
-#       - ./frontend:/app/frontend
-#       - ./data:/app/data
-#     environment:
-#       - ADMIN_PASSWORD=dev123
