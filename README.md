@@ -51,6 +51,15 @@ docker-compose up -d
 # 訪問 http://localhost:8080
 ```
 
+### 子路徑部署
+
+同一個 image 可透過 `BASE_PATH` 環境變數部署到不同子路徑：
+
+```bash
+# 部署到 https://example.com/sheltie
+BASE_PATH=/sheltie docker-compose up -d
+```
+
 ### 本地開發
 
 ```bash

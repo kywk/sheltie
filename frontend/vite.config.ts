@@ -5,7 +5,8 @@ import { fileURLToPath, URL } from 'node:url'
 const borderCollieRoot = fileURLToPath(new URL('../border-collie/src', import.meta.url))
 const frontendSrc = fileURLToPath(new URL('./src', import.meta.url))
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+    base: command === 'serve' ? '/' : '/__BASE_PATH__/',
     plugins: [vue()],
     resolve: {
         alias: [
@@ -36,5 +37,5 @@ export default defineConfig({
             }
         }
     }
-})
+}))
 

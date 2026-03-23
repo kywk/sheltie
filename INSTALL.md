@@ -117,7 +117,25 @@ docker run -d \
   sheltie
 ```
 
-### 3. 服務管理
+### 3. 子路徑部署
+
+同一個 image 可透過 `BASE_PATH` 環境變數部署到不同子路徑：
+
+```bash
+# 部署到 https://example.com/sheltie
+BASE_PATH=/sheltie docker-compose up -d
+
+# 或 docker run
+docker run -d \
+  --name sheltie \
+  -p 8080:8080 \
+  -v $(pwd)/data:/app/data \
+  -e BASE_PATH=/sheltie \
+  -e ADMIN_PASSWORD=your_secure_password \
+  sheltie
+```
+
+### 4. 服務管理
 
 ```bash
 # 停止服務
@@ -141,6 +159,7 @@ cp ./data/sheltie.db ./backup/sheltie-$(date +%Y%m%d).db
 | `PORT` | `8080` | 服務埠號 |
 | `DB_PATH` | `./data/sheltie.db` | SQLite 資料庫路徑 |
 | `ADMIN_PASSWORD` | `admin123` | 管理員密碼 |
+| `BASE_PATH` | （空） | 子路徑部署，例如 `/sheltie` |
 | `AUTO_SAVE_INTERVAL` | `30` | 自動儲存間隔 (秒) |
 
 ### 設定檔案方式
@@ -151,6 +170,7 @@ cp ./data/sheltie.db ./backup/sheltie-$(date +%Y%m%d).db
 PORT=8080
 DB_PATH=./data/sheltie.db
 ADMIN_PASSWORD=your_secure_password
+BASE_PATH=/sheltie
 AUTO_SAVE_INTERVAL=30
 ```
 

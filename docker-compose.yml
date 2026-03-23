@@ -10,6 +10,7 @@ services:
       - PORT=8080
       - DB_PATH=/app/data/sheltie.db
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - BASE_PATH=${BASE_PATH:-}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/"]
