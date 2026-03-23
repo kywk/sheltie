@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strconv"
 )
 
 // Config holds application configuration
@@ -29,10 +30,17 @@ func Load() *Config {
 		dbPath = "./data/sheltie.db"
 	}
 
+	autoSave := 60
+	if v := os.Getenv("AUTO_SAVE_INTERVAL"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			autoSave = n
+		}
+	}
+
 	return &Config{
 		Port:             port,
 		AdminPassword:    adminPassword,
 		DBPath:           dbPath,
-		AutoSaveInterval: 60, // 1 minute
+		AutoSaveInterval: autoSave,
 	}
 }

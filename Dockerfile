@@ -37,7 +37,7 @@ RUN mkdir -p /app/data
 
 ENV PORT=8080
 ENV DB_PATH=/app/data/sheltie.db
-ENV ADMIN_PASSWORD=changeme
+ENV ADMIN_PASSWORD=admin123
 ENV BASE_PATH=
 
 EXPOSE 8080

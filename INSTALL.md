@@ -99,7 +99,30 @@ docker-compose ps
 docker-compose logs -f sheltie
 ```
 
-### 2. 使用 Docker 直接部署
+### 2. 跨平台建構 (x86-64)
+
+在 Apple Silicon Mac 或其他非 x86-64 環境下建構 x86-64 映像檔：
+
+```bash
+# 使用 buildx 建構 x86-64 映像檔
+docker buildx build --platform linux/amd64 -t sheltie:latest --load .
+
+# 或使用 --platform 參數
+docker build --platform linux/amd64 -t sheltie:latest .
+```
+
+也可在 `docker-compose.yml` 中指定平台：
+
+```yaml
+services:
+  sheltie:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: Dockerfile
+```
+
+### 3. 使用 Docker 直接部署
 
 ```bash
 # 建構映像檔
@@ -117,7 +140,7 @@ docker run -d \
   sheltie
 ```
 
-### 3. 子路徑部署
+### 4. 子路徑部署
 
 同一個 image 可透過 `BASE_PATH` 環境變數部署到不同子路徑：
 
@@ -135,7 +158,7 @@ docker run -d \
   sheltie
 ```
 
-### 4. 服務管理
+### 5. 服務管理
 
 ```bash
 # 停止服務
@@ -160,7 +183,7 @@ cp ./data/sheltie.db ./backup/sheltie-$(date +%Y%m%d).db
 | `DB_PATH` | `./data/sheltie.db` | SQLite 資料庫路徑 |
 | `ADMIN_PASSWORD` | `admin123` | 管理員密碼 |
 | `BASE_PATH` | （空） | 子路徑部署，例如 `/sheltie` |
-| `AUTO_SAVE_INTERVAL` | `30` | 自動儲存間隔 (秒) |
+| `AUTO_SAVE_INTERVAL` | `60` | 自動儲存間隔 (秒) |
 
 ### 設定檔案方式
 
@@ -171,7 +194,7 @@ PORT=8080
 DB_PATH=./data/sheltie.db
 ADMIN_PASSWORD=your_secure_password
 BASE_PATH=/sheltie
-AUTO_SAVE_INTERVAL=30
+AUTO_SAVE_INTERVAL=60
 ```
 
 ## 🔧 故障排除
