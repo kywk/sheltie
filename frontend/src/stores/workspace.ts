@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { apiUrl, wsUrl as buildWsUrl } from '@/utils/api'
 
 interface Workspace {
     id: string
@@ -89,7 +90,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         isLoading.value = true
         error.value = null
         try {
-            const response = await fetch(`/api/workspaces/${id}`)
+            const response = await fetch(apiUrl(`/api/workspaces/${id}`))
             if (!response.ok) throw new Error('Workspace not found')
             currentWorkspace.value = await response.json()
         } catch (e) {
@@ -108,10 +109,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         currentUserId.value = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
         currentUsername.value = username
 
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-        const wsUrl = `${protocol}//${window.location.host}/ws/${workspaceId}?userId=${encodeURIComponent(currentUserId.value)}&username=${encodeURIComponent(username)}`
+        const wsConnUrl = buildWsUrl(`/ws/${workspaceId}?userId=${encodeURIComponent(currentUserId.value)}&username=${encodeURIComponent(username)}`)
 
-        ws.value = new WebSocket(wsUrl)
+        ws.value = new WebSocket(wsConnUrl)
 
         ws.value.onopen = () => {
             isConnected.value = true

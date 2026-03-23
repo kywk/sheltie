@@ -144,6 +144,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAdminStore } from '@/stores/admin'
 import type { WorkspaceListItem } from '@/stores/workspace'
+import { apiUrl } from '@/utils/api'
 
 const adminStore = useAdminStore()
 
@@ -210,7 +211,7 @@ const logout = () => {
 const loadWorkspaces = async () => {
   isLoadingWorkspaces.value = true
   try {
-    const response = await fetch('/api/admin/workspaces', {
+    const response = await fetch(apiUrl('/api/admin/workspaces'), {
       headers: adminStore.getAuthHeaders()
     })
     if (response.ok) {
@@ -225,7 +226,7 @@ const loadWorkspaces = async () => {
 
 const handleCreate = async () => {
   try {
-    const response = await fetch('/api/admin/workspaces', {
+    const response = await fetch(apiUrl('/api/admin/workspaces'), {
       method: 'POST',
       headers: adminStore.getAuthHeaders(),
       body: JSON.stringify({
@@ -253,7 +254,7 @@ const editWorkspace = (ws: WorkspaceListItem) => {
 
 const handleUpdate = async () => {
   try {
-    const response = await fetch(`/api/admin/workspaces/${formData.value.id}`, {
+    const response = await fetch(apiUrl(`/api/admin/workspaces/${formData.value.id}`), {
       method: 'PUT',
       headers: adminStore.getAuthHeaders(),
       body: JSON.stringify({
@@ -278,7 +279,7 @@ const confirmDelete = (ws: WorkspaceListItem) => {
 const handleDelete = async () => {
   if (!workspaceToDelete.value) return
   try {
-    const response = await fetch(`/api/admin/workspaces/${workspaceToDelete.value.id}`, {
+    const response = await fetch(apiUrl(`/api/admin/workspaces/${workspaceToDelete.value.id}`), {
       method: 'DELETE',
       headers: adminStore.getAuthHeaders()
     })

@@ -180,6 +180,7 @@
 import { ref, shallowRef, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useWorkspaceStore } from '@/stores/workspace'
+import { apiUrl } from '@/utils/api'
 import SplitPane from './SplitPane.vue'
 import SlidePreview from './SlidePreview.vue'
 import ProjectGantt from '../../../border-collie/src/components/ProjectGantt.vue'
@@ -275,7 +276,7 @@ watch(collieContent, (newVal) => {
   collieSaveTimer = window.setTimeout(async () => {
     if (!store.currentWorkspace) return
     try {
-      await fetch(`/api/workspaces/${store.currentWorkspace.id}`, {
+      await fetch(apiUrl(`/api/workspaces/${store.currentWorkspace.id}`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ collieContent: newVal })

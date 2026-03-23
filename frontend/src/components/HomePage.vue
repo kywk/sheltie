@@ -51,6 +51,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import type { WorkspaceListItem } from '@/stores/workspace'
+import { apiUrl } from '@/utils/api'
 
 const router = useRouter()
 const workspaces = ref<WorkspaceListItem[]>([])
@@ -68,7 +69,7 @@ onMounted(async () => {
   try {
     const token = localStorage.getItem('sheltie-admin-token')
     if (token) {
-      const response = await fetch('/api/admin/workspaces', {
+      const response = await fetch(apiUrl('/api/admin/workspaces'), {
         headers: { 'Authorization': token }
       })
       if (response.ok) {

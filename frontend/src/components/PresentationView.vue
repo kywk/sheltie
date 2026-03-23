@@ -215,6 +215,7 @@ import { useRoute } from 'vue-router'
 import { parseMarkdown, generateSlides, mergeColliePhases, type Slide } from '@/utils/parser'
 import { parseText, normalizeDate } from '../../../border-collie/src/shared/parser'
 import { exportToPPTX } from '@/utils/pptx-export'
+import { apiUrl } from '@/utils/api'
 import { getStatusIcon } from '@/utils/status'
 import { 
   getPhaseStyle, 
@@ -251,7 +252,7 @@ const progressPercent = computed(() => {
 onMounted(async () => {
   // Fetch workspace content
   try {
-    const response = await fetch(`/api/workspaces/${workspaceId.value}`)
+    const response = await fetch(apiUrl(`/api/workspaces/${workspaceId.value}`))
     if (response.ok) {
       const workspace = await response.json()
       workspaceName.value = workspace.name

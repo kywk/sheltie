@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { apiUrl } from '@/utils/api'
 
 export const useAdminStore = defineStore('admin', () => {
     const token = ref<string | null>(localStorage.getItem('sheltie-admin-token'))
@@ -7,7 +8,7 @@ export const useAdminStore = defineStore('admin', () => {
 
     const login = async (password: string): Promise<boolean> => {
         try {
-            const response = await fetch('/api/admin/login', {
+            const response = await fetch(apiUrl('/api/admin/login'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ password })
@@ -31,7 +32,7 @@ export const useAdminStore = defineStore('admin', () => {
         isAuthenticated.value = false
         localStorage.removeItem('sheltie-admin-token')
         if (currentToken) {
-            fetch('/api/admin/logout', {
+            fetch(apiUrl('/api/admin/logout'), {
                 method: 'POST',
                 headers: { 'Authorization': currentToken }
             })
