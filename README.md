@@ -53,6 +53,15 @@ docker-compose up -d
 
 ### 本地開發
 
+```bash
+# 克隆專案（含 submodule）
+git clone --recurse-submodules <repository-url>
+cd sheltie
+
+# 若已克隆但未初始化 submodule
+git submodule update --init
+```
+
 **後端 (Go)**
 ```bash
 cd backend
@@ -146,6 +155,7 @@ sheltie/
 │   ├── database/         # SQLite 資料庫
 │   ├── handlers/         # HTTP 處理器
 │   └── websocket/        # WebSocket 協同編輯
+├── border-collie/         # 甘特圖元件 (git submodule)
 ├── frontend/              # Vue 前端
 │   ├── src/
 │   │   ├── components/

@@ -17,8 +17,12 @@
 ### 1. 克隆專案
 
 ```bash
-git clone <repository-url>
+# 克隆專案（含 submodule）
+git clone --recurse-submodules <repository-url>
 cd sheltie
+
+# 若已克隆但未初始化 submodule
+git submodule update --init
 ```
 
 ### 2. 後端設置
@@ -267,6 +271,9 @@ echo "Backup completed: sheltie_$DATE.db"
 ```bash
 # 更新程式碼
 git pull origin main
+
+# 更新 submodule
+git submodule update --init
 
 # 更新後端依賴
 cd backend && go mod tidy

@@ -1,0 +1,3 @@
+[submodule "border-collie"]
+	path = border-collie
+	url = git@github.com:kywk/border-collie.git
