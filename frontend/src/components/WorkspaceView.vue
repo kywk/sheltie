@@ -177,7 +177,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, shallowRef, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, shallowRef, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { apiUrl } from '@/utils/api'
@@ -265,7 +265,36 @@ onMounted(async () => {
 
 onUnmounted(() => store.disconnectWebSocket())
 
-watch(() => store.currentWorkspace?.content, (v) => { if (v && v !== content.value) content.value = v })
+// When a remote user updates content, apply it while preserving our cursor position
+watch(() => store.remoteContentUpdate, (update) => {
+  if (!update) return
+
+  if (textareaRef.value) {
+    // Save current cursor state
+    const savedStart = textareaRef.value.selectionStart
+    const savedEnd = textareaRef.value.selectionEnd
+    const savedScrollTop = textareaRef.value.scrollTop
+
+    // Apply the remote content
+    content.value = update.content
+    if (store.currentWorkspace) store.currentWorkspace.content = update.content
+
+    // Restore cursor on next tick (after Vue re-renders the textarea)
+    nextTick(() => {
+      if (textareaRef.value) {
+        const maxPos = content.value.length
+        textareaRef.value.selectionStart = Math.min(savedStart, maxPos)
+        textareaRef.value.selectionEnd = Math.min(savedEnd, maxPos)
+        textareaRef.value.scrollTop = savedScrollTop
+      }
+    })
+  } else {
+    // Editor not focused (e.g. non-progress tab) — just update the store
+    content.value = update.content
+    if (store.currentWorkspace) store.currentWorkspace.content = update.content
+  }
+}, { deep: true })
+
 watch(() => store.currentWorkspace?.collieContent, (v) => { if (v !== undefined && v !== collieContent.value) collieContent.value = v })
 
 // Auto-save collieContent

@@ -13,6 +13,7 @@ import (
 // Message types
 const (
 	MessageTypeContent   = "content"
+	MessageTypeAck       = "ack"
 	MessageTypeOperation = "operation"
 	MessageTypeJoin      = "join"
 	MessageTypeLeave     = "leave"
@@ -154,26 +155,39 @@ func (h *Hub) Run() {
 				result := doc.UpdateContent(message.Content, message.Version, message.Hash)
 
 				if result.Success {
-					// Update successful - broadcast to all clients
+					// Update successful
 					h.contentMu.Lock()
 					h.lastContent[message.WorkspaceID] = result.Content
 					h.lastContentTime[message.WorkspaceID] = time.Now()
 					h.contentMu.Unlock()
 
-					response := &Message{
+					// Broadcast full content to all OTHER clients
+					remoteMsg := &Message{
 						Type:        MessageTypeContent,
 						Content:     result.Content,
+						UserID:      message.UserID,
 						WorkspaceID: message.WorkspaceID,
 						Version:     result.Version,
 						Hash:        result.Hash,
 						Conflict:    false,
 					}
-					h.broadcastToRoom(message.WorkspaceID, response, nil)
+					h.broadcastToRoomExcludeUser(message.WorkspaceID, remoteMsg, message.UserID)
+
+					// Send ACK (no content) back to the sender so it can update version/hash
+					ackMsg := &Message{
+						Type:        MessageTypeAck,
+						UserID:      message.UserID,
+						WorkspaceID: message.WorkspaceID,
+						Version:     result.Version,
+						Hash:        result.Hash,
+					}
+					h.sendToUser(message.WorkspaceID, message.UserID, ackMsg)
 				} else {
-					// Conflict detected - send current state back to sender
+					// Conflict detected - send current state back to sender so it can re-sync
 					conflictResponse := &Message{
 						Type:        MessageTypeContent,
 						Content:     result.Content,
+						UserID:      "",
 						WorkspaceID: message.WorkspaceID,
 						Version:     result.Version,
 						Hash:        result.Hash,
@@ -296,6 +310,39 @@ func (h *Hub) broadcastToRoom(workspaceID string, message *Message, exclude *Cli
 
 	for _, client := range clients {
 		if client == exclude {
+			continue
+		}
+		select {
+		case client.Send <- data:
+		default:
+			h.mu.Lock()
+			if _, ok := h.Rooms[workspaceID][client]; ok {
+				delete(h.Rooms[workspaceID], client)
+				close(client.Send)
+			}
+			h.mu.Unlock()
+		}
+	}
+}
+
+// broadcastToRoomExcludeUser sends a message to all clients except the one with the given userID
+func (h *Hub) broadcastToRoomExcludeUser(workspaceID string, message *Message, excludeUserID string) {
+	data, err := json.Marshal(message)
+	if err != nil {
+		log.Printf("Error marshaling message: %v", err)
+		return
+	}
+
+	h.mu.RLock()
+	room := h.Rooms[workspaceID]
+	clients := make([]*Client, 0, len(room))
+	for client := range room {
+		clients = append(clients, client)
+	}
+	h.mu.RUnlock()
+
+	for _, client := range clients {
+		if client.ID == excludeUserID {
 			continue
 		}
 		select {

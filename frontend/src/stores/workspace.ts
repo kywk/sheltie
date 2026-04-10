@@ -64,6 +64,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const documentHash = ref<string>('')
     const pendingChanges = ref<boolean>(false)
 
+    // Remote content update signal (used by the view to apply with cursor preservation)
+    const remoteContentUpdate = ref<{ content: string; conflict: boolean; timestamp: number } | null>(null)
+
     // Get list of other connected users (excluding self)
     const otherUsers = computed(() => {
         return Array.from(users.value.values()).filter(u => u.id !== currentUserId.value)
@@ -136,18 +139,35 @@ export const useWorkspaceStore = defineStore('workspace', () => {
                 switch (message.type) {
                     case 'content':
                         if (currentWorkspace.value) {
-                            if (message.conflict) {
-                                // Conflict detected - show warning and update to server version
-                                console.warn('Content conflict detected, updating to server version')
-                                // Could show a toast notification here
-                            }
-
-                            // Always update to the server's version
-                            currentWorkspace.value.content = message.content
                             documentVersion.value = message.version || 0
                             documentHash.value = message.hash || ''
                             pendingChanges.value = false
+
+                            if (message.conflict) {
+                                // Conflict: server overrides local — signal view to apply
+                                console.warn('Content conflict detected, reverting to server version')
+                                remoteContentUpdate.value = {
+                                    content: message.content,
+                                    conflict: true,
+                                    timestamp: Date.now()
+                                }
+                            } else if (message.userId !== currentUserId.value) {
+                                // Remote update from another user — signal view to apply with cursor protection
+                                remoteContentUpdate.value = {
+                                    content: message.content,
+                                    conflict: false,
+                                    timestamp: Date.now()
+                                }
+                            }
+                            // If userId === currentUserId: this is echoed back from an old broadcast, ignore
                         }
+                        break
+
+                    case 'ack':
+                        // Server confirmed our last write — just update version/hash, don't touch content
+                        documentVersion.value = message.version || 0
+                        documentHash.value = message.hash || ''
+                        pendingChanges.value = false
                         break
 
                     case 'join':
@@ -269,6 +289,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         documentVersion,
         documentHash,
         pendingChanges,
+        remoteContentUpdate,
         getUserIcon,
         fetchWorkspace,
         connectWebSocket,
