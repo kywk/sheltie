@@ -41,9 +41,15 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="project in currentSlideData.projects" :key="project.name">
+              <tr
+                v-for="project in currentSlideData.projects"
+                :key="project.name"
+                class="summary-row"
+                :class="{ clickable: findProjectSlide(project.name) !== -1 }"
+                @click.stop="jumpToProject(project.name)"
+              >
                 <td><span class="status-icon">{{ getStatusIcon(project.status) }}</span></td>
-                <td>{{ project.name }}</td>
+                <td class="project-name-cell">{{ project.name }}</td>
                 <td>{{ project.currentState }}</td>
                 <td>{{ project.progress }}%</td>
                 <td>{{ project.contact }}</td>
@@ -65,6 +71,12 @@
               <span class="tag tag-progress">{{ currentSlideData.project?.progress }}%</span>
               <span class="tag tag-contact" v-if="currentSlideData.project?.contact">{{ currentSlideData.project?.contact }}</span>
               <span class="tag tag-category" v-if="currentSlideData.project?.category">{{ currentSlideData.project?.category }}</span>
+              <button
+                v-if="findPrecedingSummary() !== -1"
+                class="tag tag-home-btn"
+                title="返回彙整頁 (Home)"
+                @click.stop="goToSummary()"
+              >⌂ 彙整</button>
             </div>
           </div>
 
@@ -346,6 +358,14 @@ const handleKeydown = (e: KeyboardEvent) => {
       prevSlide()
       e.preventDefault()
       break
+    case 'Home': {
+      const summaryIdx = findPrecedingSummary()
+      if (summaryIdx !== -1) {
+        currentSlide.value = summaryIdx
+        e.preventDefault()
+      }
+      break
+    }
     case 'Escape':
       // Always go back to workspace, not just exit fullscreen
       if (isFullscreen.value) {
@@ -400,6 +420,37 @@ const getSummaryIndex = () => {
     if (slides.value[i]?.type === 'summary') count++
   }
   return count
+}
+
+// Find the slide index for a project by name (-1 if not found)
+const findProjectSlide = (name: string): number => {
+  return slides.value.findIndex(s => s.type === 'project' && s.project?.name === name)
+}
+
+// Jump from summary slide to a project's slide
+const jumpToProject = (name: string) => {
+  const idx = findProjectSlide(name)
+  if (idx !== -1) {
+    currentSlide.value = idx
+  }
+}
+
+// Find the summary slide that contains the current project in its projects list (-1 if none)
+const findPrecedingSummary = (): number => {
+  if (currentSlideData.value?.type !== 'project') return -1
+  const projectName = currentSlideData.value.project?.name
+  if (!projectName) return -1
+  return slides.value.findIndex(
+    s => s.type === 'summary' && s.projects?.some(p => p.name === projectName)
+  )
+}
+
+// Navigate to the preceding summary slide
+const goToSummary = () => {
+  const idx = findPrecedingSummary()
+  if (idx !== -1) {
+    currentSlide.value = idx
+  }
 }
 
 const exportPPTX = () => {
@@ -535,6 +586,27 @@ const shouldUseTwoRows = (departments: { 承辦: string[], 協辦: string[] } | 
 .col-name { width: 30%; }
 .col-progress { width: 100px; text-align: center; }
 
+/* Summary row hover / click navigation */
+.summary-row {
+  transition: background 0.18s, box-shadow 0.18s;
+}
+
+.summary-row.clickable {
+  cursor: pointer;
+}
+
+.summary-row.clickable:hover {
+  background: #eff6ff;
+  box-shadow: inset 4px 0 0 #3b82f6;
+}
+
+.summary-row.clickable:hover .project-name-cell {
+  color: #1d4ed8;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 /* Project Slide Header */
 .project-slide .slide-header {
   display: flex;
@@ -595,6 +667,25 @@ const shouldUseTwoRows = (departments: { 承辦: string[], 協辦: string[] } | 
 .tag-category {
   background: #f3e8ff;
   color: #7c3aed;
+}
+
+.tag-home-btn {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1.5px solid #bbf7d0;
+  padding: 0.35rem 1rem;
+  border-radius: 1rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s, transform 0.15s;
+  margin-left: 0.5rem;
+}
+
+.tag-home-btn:hover {
+  background: #dcfce7;
+  border-color: #4ade80;
+  transform: translateY(-1px);
 }
 
 .slide-body {
