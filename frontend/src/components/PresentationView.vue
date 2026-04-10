@@ -28,7 +28,7 @@
       </div>
       <template v-else>
         <!-- Summary Slide -->
-        <div v-if="currentSlideData?.type === 'summary'" class="slide summary-slide">
+        <div v-if="currentSlideData?.type === 'summary'" class="slide summary-slide" :style="{ zoom: fontScale }">
           <div class="slide-title">專案進展彙整 {{ getSummaryIndex() }}</div>
           <table class="summary-table">
             <thead>
@@ -59,7 +59,7 @@
         </div>
 
         <!-- Project Detail Slide -->
-        <div v-else-if="currentSlideData?.type === 'project'" class="slide project-slide">
+        <div v-else-if="currentSlideData?.type === 'project'" class="slide project-slide" :style="{ zoom: fontScale }">
           <!-- Header with Tags -->
           <div class="slide-header">
             <div class="header-main">
@@ -83,15 +83,23 @@
           <div class="slide-body">
             <!-- Departments Section -->
             <div class="departments-container" :class="{ 'two-rows': shouldUseTwoRows(currentSlideData.project?.departments) }">
-              <div class="dept-item">
+              <div class="dept-item dept-assignee">
                 <span class="dept-label">承辦：</span>
-                <span class="dept-value">{{ formatDepartments(currentSlideData.project?.departments.承辦) || '-' }}</span>
+                <span
+                  class="dept-value"
+                  @mouseenter="showTooltip(formatDepartments(currentSlideData.project?.departments.承辦), $event)"
+                  @mouseleave="hideTooltip"
+                >{{ formatDepartments(currentSlideData.project?.departments.承辦) || '-' }}</span>
               </div>
               <div class="dept-divider" v-if="!shouldUseTwoRows(currentSlideData.project?.departments)">│</div>
               <div class="dept-item dept-partners">
                 <span class="dept-label">協辦：</span>
-                <span class="dept-value" :title="formatDepartments(currentSlideData.project?.departments.協辦)">
-                  {{ formatDepartments(currentSlideData.project?.departments.協辦) || '-' }}
+                <span
+                  class="dept-value"
+                  @mouseenter="showTooltip(formatDepartments(currentSlideData.project?.departments.協辦), $event)"
+                  @mouseleave="hideTooltip"
+                >
+                  {{ truncateDepts(formatDepartments(currentSlideData.project?.departments.協辦) || '-') }}
                 </span>
               </div>
             </div>
@@ -218,6 +226,22 @@
     <div class="progress-bar">
       <div class="progress-fill" :style="{ width: progressPercent + '%' }"></div>
     </div>
+
+    <!-- Custom Tooltip -->
+    <Transition name="hud-fade">
+      <div
+        v-if="tooltipText"
+        class="custom-tooltip"
+        :style="tooltipStyle"
+      >{{ tooltipText }}</div>
+    </Transition>
+
+    <!-- Font Scale HUD -->
+    <Transition name="hud-fade">
+      <div v-if="showFontHud" class="font-scale-hud">
+        {{ fontScaleDisplay }}
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -250,6 +274,25 @@ const currentSlide = ref(0)
 const isFullscreen = ref(false)
 const toolbarHidden = ref(false)
 const overviewMode = ref(false)
+const fontScale = ref(1)
+const showFontHud = ref(false)
+let hudTimeout: number | null = null
+
+const fontScaleDisplay = computed(() => Math.round(fontScale.value * 100) + '%')
+
+// Custom tooltip
+const tooltipText = ref('')
+const tooltipStyle = ref<Record<string, string>>({})
+
+const showTooltip = (text: string, e: MouseEvent) => {
+  if (!text) return
+  tooltipText.value = text
+  const x = Math.min(e.clientX + 14, window.innerWidth - 340)
+  const y = e.clientY - 14
+  tooltipStyle.value = { left: x + 'px', top: y + 'px' }
+}
+
+const hideTooltip = () => { tooltipText.value = '' }
 
 // Auto-hide toolbar
 let toolbarTimeout: number | null = null
@@ -382,7 +425,33 @@ const handleKeydown = (e: KeyboardEvent) => {
       overviewMode.value = !overviewMode.value
       e.preventDefault()
       break
+    case '+':
+    case '=':
+      adjustFontScale(0.05)
+      e.preventDefault()
+      break
+    case '-':
+    case '_':
+      adjustFontScale(-0.05)
+      e.preventDefault()
+      break
+    case '0':
+      fontScale.value = 1
+      triggerFontHud()
+      e.preventDefault()
+      break
   }
+}
+
+const adjustFontScale = (delta: number) => {
+  fontScale.value = Math.round(Math.min(2.0, Math.max(0.5, fontScale.value + delta)) * 100) / 100
+  triggerFontHud()
+}
+
+const triggerFontHud = () => {
+  showFontHud.value = true
+  if (hudTimeout) clearTimeout(hudTimeout)
+  hudTimeout = window.setTimeout(() => { showFontHud.value = false }, 1500)
 }
 
 const nextSlide = () => {
@@ -463,6 +532,12 @@ const exportPPTX = () => {
 const formatDepartments = (departments: string[] | undefined): string => {
   if (!departments || departments.length === 0) return ''
   return departments.join(', ')
+}
+
+// Truncate department text to maxLen characters
+const truncateDepts = (text: string, maxLen = 60): string => {
+  if (!text || text.length <= maxLen) return text
+  return text.slice(0, maxLen) + '...'
 }
 
 // Check if should use two rows layout
@@ -557,7 +632,7 @@ const shouldUseTwoRows = (departments: { 承辦: string[], 協辦: string[] } | 
 
 /* Summary Slide */
 .summary-slide .slide-title {
-  font-size: 2.25rem;
+  font-size: 2.48rem;
   font-weight: 700;
   margin-bottom: 1rem;
   color: #1e293b;
@@ -566,7 +641,7 @@ const shouldUseTwoRows = (departments: { 承辦: string[], 協辦: string[] } | 
 .summary-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 1.25rem;
+  font-size: 1.38rem;
 }
 
 .summary-table th,
@@ -624,11 +699,11 @@ const shouldUseTwoRows = (departments: { 承辦: string[], 協辦: string[] } | 
 }
 
 .status-icon.large {
-  font-size: 2rem;
+  font-size: 2.2rem;
 }
 
 .project-title {
-  font-size: 2.25rem;
+  font-size: 2.48rem;
   font-weight: 700;
   color: #1e293b;
   margin: 0;
@@ -645,7 +720,7 @@ const shouldUseTwoRows = (departments: { 承辦: string[], 協辦: string[] } | 
 .tag {
   padding: 0.35rem 1rem;
   border-radius: 1rem;
-  font-size: 1.1rem;
+  font-size: 1.21rem;
   font-weight: 500;
 }
 
@@ -675,7 +750,7 @@ const shouldUseTwoRows = (departments: { 承辦: string[], 協辦: string[] } | 
   border: 1.5px solid #bbf7d0;
   padding: 0.35rem 1rem;
   border-radius: 1rem;
-  font-size: 1.1rem;
+  font-size: 1.21rem;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.18s, border-color 0.18s, transform 0.15s;
@@ -713,14 +788,14 @@ const shouldUseTwoRows = (departments: { 承辦: string[], 協辦: string[] } | 
 }
 
 .info-label {
-  font-size: 0.7rem;
+  font-size: 0.77rem;
   color: #64748b;
   font-weight: 500;
   text-transform: uppercase;
 }
 
 .info-value {
-  font-size: 1rem;
+  font-size: 1.1rem;
   color: #1e293b;
   font-weight: 500;
 }
@@ -730,7 +805,7 @@ const shouldUseTwoRows = (departments: { 承辦: string[], 協辦: string[] } | 
   display: flex;
   align-items: baseline;
   gap: 1rem;
-  font-size: 1.2rem;
+  font-size: 1.32rem;
   padding-top: 0.25rem;
 }
 
@@ -743,16 +818,23 @@ const shouldUseTwoRows = (departments: { 承辦: string[], 協辦: string[] } | 
   display: flex;
   align-items: baseline;
   gap: 0.25rem;
+  white-space: nowrap;
 }
 
 .two-rows .dept-item {
   width: 100%;
+  white-space: normal;
+}
+
+.dept-assignee {
+  flex-shrink: 0;
 }
 
 .dept-label {
   color: #64748b;
   font-weight: 500;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .two-rows .dept-label {
@@ -761,7 +843,6 @@ const shouldUseTwoRows = (departments: { 承辦: string[], 協辦: string[] } | 
 
 .dept-value {
   color: #1e293b;
-  flex: 1;
   line-height: 1.4;
 }
 
@@ -777,24 +858,21 @@ const shouldUseTwoRows = (departments: { 承辦: string[], 協辦: string[] } | 
 }
 
 .dept-partners .dept-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.two-rows .dept-partners .dept-value {
+  white-space: normal;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.4;
-}
-
-.two-rows .dept-partners .dept-value {
-  display: block;
-  -webkit-line-clamp: unset;
-  -webkit-box-orient: unset;
-  overflow: visible;
-  text-overflow: unset;
 }
 
 .section-label {
-  font-size: 1.25rem;
+  font-size: 1.38rem;
   font-weight: 600;
   color: #475569;
   margin-bottom: 0.4rem;
@@ -827,7 +905,7 @@ const shouldUseTwoRows = (departments: { 承辦: string[], 協辦: string[] } | 
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 1.2rem;
+  font-size: 1.32rem;
   font-weight: 600;
   text-shadow: 0 1px 2px rgba(0,0,0,0.3);
   clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%, 14px 50%);
@@ -838,7 +916,7 @@ const shouldUseTwoRows = (departments: { 承辦: string[], 協辦: string[] } | 
 }
 
 .phase-dates {
-  font-size: 1rem;
+  font-size: 1.1rem;
   opacity: 0.9;
   font-weight: 400;
   white-space: nowrap;
@@ -867,7 +945,7 @@ const shouldUseTwoRows = (departments: { 承辦: string[], 協辦: string[] } | 
   top: -4px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 14px;
+  font-size: 15.4px;
 }
 
 /* Bottom Section - 2/3 + 1/3 Layout */
@@ -904,7 +982,7 @@ const shouldUseTwoRows = (departments: { 承辦: string[], 協辦: string[] } | 
 }
 
 .other-notes-column li {
-  font-size: 1.25rem;
+  font-size: 1.38rem;
   color: #4b5563;
   margin-bottom: 0.5rem;
   line-height: 1.5;
@@ -928,16 +1006,16 @@ const shouldUseTwoRows = (departments: { 承辦: string[], 協辦: string[] } | 
 
 .meeting-entry {
   display: flex;
-  gap: 0.15rem;
-  font-size: 1.25rem;
+  gap: 0.75rem;
+  font-size: 1.38rem;
 }
 
 .meeting-date {
-  width: 85px;
+  width: 6.5rem;
   flex-shrink: 0;
   color: #64748b;
   font-weight: 500;
-  font-size: 0.9rem;
+  font-size: 0.99rem;
   margin-top: 0.15rem;
   white-space: nowrap;
 }
@@ -1111,5 +1189,54 @@ const shouldUseTwoRows = (departments: { 承辦: string[], 協辦: string[] } | 
 
 .btn-ghost:hover {
   background: rgba(255,255,255,0.1);
+}
+
+/* Font Scale HUD */
+.font-scale-hud {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.72);
+  color: white;
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 1rem 2.5rem;
+  border-radius: 1rem;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+  z-index: 999;
+}
+
+.hud-fade-enter-active,
+.hud-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.hud-fade-enter-from,
+.hud-fade-leave-to {
+  opacity: 0;
+}
+
+/* Custom Tooltip (works in fullscreen, bypasses native title suppression) */
+.custom-tooltip {
+  position: fixed;
+  max-width: 480px;
+  background: rgba(15, 23, 42, 0.95);
+  color: #f1f5f9;
+  font-size: 1rem;
+  line-height: 1.6;
+  padding: 0.55rem 0.9rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+  z-index: 9999;
+  white-space: normal;
+  word-break: break-all;
+  transform: translateY(-100%);
 }
 </style>
