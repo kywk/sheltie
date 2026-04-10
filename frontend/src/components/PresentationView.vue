@@ -242,6 +242,42 @@
         {{ fontScaleDisplay }}
       </div>
     </Transition>
+
+    <!-- Help Cheat Sheet -->
+    <Transition name="help-modal">
+      <div v-if="showHelp" class="help-overlay" @click.self="showHelp = false">
+        <div class="help-modal">
+          <div class="help-header">
+            <span class="help-title">⌨️ 快捷鍵說明</span>
+            <button class="help-close" @click="showHelp = false">✕</button>
+          </div>
+          <div class="help-body">
+            <div class="help-group">
+              <div class="help-group-title">投影片操作</div>
+              <div class="help-row"><span class="help-keys"><kbd>→</kbd><kbd>↓</kbd><kbd>Space</kbd><kbd>Enter</kbd></span><span class="help-desc">下一頁</span></div>
+              <div class="help-row"><span class="help-keys"><kbd>←</kbd><kbd>↑</kbd></span><span class="help-desc">上一頁</span></div>
+              <div class="help-row"><span class="help-keys"><kbd>Home</kbd></span><span class="help-desc">返回對應彙整頁</span></div>
+            </div>
+            <div class="help-group">
+              <div class="help-group-title">檢視模式</div>
+              <div class="help-row"><span class="help-keys"><kbd>Z</kbd></span><span class="help-desc">開啟／關閉總覽模式</span></div>
+              <div class="help-row"><span class="help-keys"><kbd>F</kbd></span><span class="help-desc">全螢幕／退出全螢幕</span></div>
+            </div>
+            <div class="help-group">
+              <div class="help-group-title">字體大小</div>
+              <div class="help-row"><span class="help-keys"><kbd>+</kbd></span><span class="help-desc">放大字體 +5%</span></div>
+              <div class="help-row"><span class="help-keys"><kbd>-</kbd></span><span class="help-desc">縮小字體 -5%</span></div>
+              <div class="help-row"><span class="help-keys"><kbd>0</kbd></span><span class="help-desc">重設字體大小 (100%)</span></div>
+            </div>
+            <div class="help-group">
+              <div class="help-group-title">其他</div>
+              <div class="help-row"><span class="help-keys"><kbd>H</kbd></span><span class="help-desc">顯示／關閉此說明</span></div>
+              <div class="help-row"><span class="help-keys"><kbd>Esc</kbd></span><span class="help-desc">關閉弹窗／返回編輯</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -279,6 +315,8 @@ const showFontHud = ref(false)
 let hudTimeout: number | null = null
 
 const fontScaleDisplay = computed(() => Math.round(fontScale.value * 100) + '%')
+
+const showHelp = ref(false)
 
 // Custom tooltip
 const tooltipText = ref('')
@@ -410,6 +448,11 @@ const handleKeydown = (e: KeyboardEvent) => {
       break
     }
     case 'Escape':
+      if (showHelp.value) {
+        showHelp.value = false
+        e.preventDefault()
+        break
+      }
       // Always go back to workspace, not just exit fullscreen
       if (isFullscreen.value) {
         document.exitFullscreen()
@@ -438,6 +481,11 @@ const handleKeydown = (e: KeyboardEvent) => {
     case '0':
       fontScale.value = 1
       triggerFontHud()
+      e.preventDefault()
+      break
+    case 'h':
+    case 'H':
+      showHelp.value = !showHelp.value
       e.preventDefault()
       break
   }
@@ -1238,5 +1286,142 @@ const shouldUseTwoRows = (departments: { 承辦: string[], 協辦: string[] } | 
   white-space: normal;
   word-break: break-all;
   transform: translateY(-100%);
+}
+
+/* Help Cheat Sheet Overlay */
+.help-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.help-modal {
+  background: rgba(15, 23, 42, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 1rem;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+  width: 520px;
+  max-width: 90vw;
+  overflow: hidden;
+  color: #f1f5f9;
+}
+
+.help-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.help-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.help-close {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 1rem;
+  cursor: pointer;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.375rem;
+  transition: color 0.15s, background 0.15s;
+}
+
+.help-close:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.help-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  padding: 1rem 1.5rem 1.5rem;
+  column-gap: 2rem;
+  row-gap: 1.25rem;
+}
+
+.help-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.help-group-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #64748b;
+  margin-bottom: 0.1rem;
+}
+
+.help-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.help-keys {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 120px;
+  flex-shrink: 0;
+}
+
+.help-keys kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.3rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-bottom-width: 2px;
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: #e2e8f0;
+  white-space: nowrap;
+}
+
+.help-desc {
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* Help modal transition */
+.help-modal-enter-active,
+.help-modal-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.help-modal-enter-active .help-modal,
+.help-modal-leave-active .help-modal {
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.help-modal-enter-from,
+.help-modal-leave-to {
+  opacity: 0;
+}
+
+.help-modal-enter-from .help-modal,
+.help-modal-leave-to .help-modal {
+  transform: scale(0.95);
+  opacity: 0;
 }
 </style>
