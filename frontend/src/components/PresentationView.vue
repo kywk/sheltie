@@ -256,7 +256,7 @@
               <div class="help-group-title">投影片操作</div>
               <div class="help-row"><span class="help-keys"><kbd>→</kbd><kbd>↓</kbd><kbd>Space</kbd><kbd>Enter</kbd></span><span class="help-desc">下一頁</span></div>
               <div class="help-row"><span class="help-keys"><kbd>←</kbd><kbd>↑</kbd></span><span class="help-desc">上一頁</span></div>
-              <div class="help-row"><span class="help-keys"><kbd>Home</kbd></span><span class="help-desc">返回對應彙整頁</span></div>
+              <div class="help-row"><span class="help-keys"><kbd>Home</kbd><kbd>H</kbd></span><span class="help-desc">返回對應彙整頁</span></div>
             </div>
             <div class="help-group">
               <div class="help-group-title">檢視模式</div>
@@ -271,7 +271,7 @@
             </div>
             <div class="help-group">
               <div class="help-group-title">其他</div>
-              <div class="help-row"><span class="help-keys"><kbd>H</kbd></span><span class="help-desc">顯示／關閉此說明</span></div>
+              <div class="help-row"><span class="help-keys"><kbd>?</kbd><kbd>/</kbd></span><span class="help-desc">顯示／關閉此說明</span></div>
               <div class="help-row"><span class="help-keys"><kbd>Esc</kbd></span><span class="help-desc">關閉弹窗／返回編輯</span></div>
             </div>
           </div>
@@ -439,7 +439,9 @@ const handleKeydown = (e: KeyboardEvent) => {
       prevSlide()
       e.preventDefault()
       break
-    case 'Home': {
+    case 'Home':
+    case 'h':
+    case 'H': {
       const summaryIdx = findPrecedingSummary()
       if (summaryIdx !== -1) {
         currentSlide.value = summaryIdx
@@ -483,8 +485,8 @@ const handleKeydown = (e: KeyboardEvent) => {
       triggerFontHud()
       e.preventDefault()
       break
-    case 'h':
-    case 'H':
+    case '?':
+    case '/':
       showHelp.value = !showHelp.value
       e.preventDefault()
       break
